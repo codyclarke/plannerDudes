@@ -1,0 +1,49 @@
+import { z } from "zod";
+
+export const signupSchema = z.object({
+  token: z.string().min(1),
+  displayName: z.string().trim().min(1).max(80),
+  password: z.string().min(8).max(100),
+});
+
+export const createInviteSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export const eventOptionInput = z.object({
+  startsAt: z.iso.datetime(), // UTC ISO string, converted client-side
+  label: z.string().trim().max(80).optional(),
+});
+
+export const createEventSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(2000).optional(),
+  location: z.string().trim().max(200).optional(),
+  spousesInvited: z.boolean(),
+  kidsAllowed: z.boolean(),
+  inviteeIds: z.array(z.string().uuid()).min(1),
+  options: z.array(eventOptionInput).min(2).max(5),
+});
+
+export const voteSchema = z.object({
+  eventOptionId: z.string().uuid(),
+  response: z.enum(["yes", "maybe", "no"]),
+  adultsCount: z.number().int().min(0).max(20),
+  kidsCount: z.number().int().min(0).max(20),
+});
+
+export const voteBatchSchema = z.object({
+  votes: z.array(voteSchema).min(1),
+});
+
+export const finalizeSchema = z.object({
+  eventOptionId: z.string().uuid(),
+});
+
+export const pushSubscribeSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
