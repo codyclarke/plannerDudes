@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
+/* Semantic surface colors swap automatically with the OS dark-mode setting,
+   so components use bg-background / bg-surface / text-muted / border-line
+   instead of sprinkling dark: variants everywhere. Accent colors come
+   straight from Tailwind's palette (violet / fuchsia / orange). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbf7ff;
+  --foreground: #1e1530;
+  --surface: #ffffff;
+  --surface-2: #f4eefc;
+  --muted: #6e6485;
+  --line: #e9e1f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #120b1f;
+    --foreground: #f4effc;
+    --surface: #1d1430;
+    --surface-2: #261b3d;
+    --muted: #a99fbe;
+    --line: #33274a;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-fredoka);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Native date/time pickers follow the page theme. */
+input[type="date"],
+input[type="time"] {
+  color-scheme: light dark;
 }

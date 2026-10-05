@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import AuthShell from "@/components/AuthShell";
+import { buttonClasses } from "@/components/ui";
 import SignupForm from "./signup-form";
 
 export default async function SignupPage({
@@ -17,10 +20,15 @@ export default async function SignupPage({
 
   if (!invite || invite.status !== "pending" || new Date(invite.expires_at) < new Date()) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 px-4">
-        <h1 className="text-2xl font-semibold">Invite not valid</h1>
-        <p>This invite link has already been used, expired, or doesn&apos;t exist.</p>
-      </div>
+      <AuthShell
+        emoji="😕"
+        title="Invite not valid"
+        subtitle="This link was already used, has expired, or doesn't exist. Ask whoever invited you for a fresh one."
+      >
+        <Link href="/login" className={buttonClasses("secondary", { full: true })}>
+          Go to log in
+        </Link>
+      </AuthShell>
     );
   }
 

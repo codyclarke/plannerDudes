@@ -4,6 +4,7 @@ import { createEventSchema } from "@/lib/validations";
 import { sendEventCreatedEmail } from "@/lib/email";
 import { sendPushToProfiles } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { allDayStartsAt } from "@/lib/format";
 
 // Deletes a partially created event (options/invitees cascade). Uses the
 // admin client because RLS has no delete policy on events.
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
       title: input.title,
       description: input.description ?? null,
       location: input.location ?? null,
+      emoji: input.emoji ?? null,
       spouses_invited: input.spousesInvited,
       kids_allowed: input.kidsAllowed,
     })
@@ -54,7 +56,8 @@ export async function POST(request: Request) {
   const { error: optionsError } = await supabase.from("event_options").insert(
     input.options.map((opt, i) => ({
       event_id: event.id,
-      starts_at: opt.startsAt,
+      starts_at: opt.allDay ? allDayStartsAt(opt.date) : opt.startsAt,
+      all_day: opt.allDay,
       label: opt.label ?? null,
       sort_order: i,
     }))

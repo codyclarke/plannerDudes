@@ -10,15 +10,26 @@ export const createInviteSchema = z.object({
   email: z.string().trim().email(),
 });
 
-export const eventOptionInput = z.object({
-  startsAt: z.iso.datetime(), // UTC ISO string, converted client-side
-  label: z.string().trim().max(80).optional(),
-});
+// A candidate is either a specific time (UTC ISO, converted client-side from
+// the browser's zone) or a whole day ("YYYY-MM-DD", no timezone involved).
+export const eventOptionInput = z.union([
+  z.object({
+    allDay: z.literal(false),
+    startsAt: z.iso.datetime(),
+    label: z.string().trim().max(80).optional(),
+  }),
+  z.object({
+    allDay: z.literal(true),
+    date: z.iso.date(),
+    label: z.string().trim().max(80).optional(),
+  }),
+]);
 
 export const createEventSchema = z.object({
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().max(2000).optional(),
   location: z.string().trim().max(200).optional(),
+  emoji: z.string().trim().min(1).max(16).optional(),
   spousesInvited: z.boolean(),
   kidsAllowed: z.boolean(),
   inviteeIds: z.array(z.string().uuid()).min(1),

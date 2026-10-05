@@ -1,8 +1,6 @@
-import { formatWhen } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import TallyTable from "@/components/TallyTable";
-import VoteForm from "./vote-form";
-import FinalizeControl from "./finalize-control";
+import { eventEmoji } from "@/lib/emoji";
+import EventView, { EventNotFound, type OptionView } from "./event-view";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: eventId } = await params;
@@ -11,132 +9,74 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!auth.user) return null;
 
   const { data: event } = await supabase.from("events").select("*").eq("id", eventId).single();
-  if (!event) {
-    return (
-      <div>
-        <h1 className="text-xl font-semibold">Event not found</h1>
-        <p className="text-neutral-500">
-          It may have been removed, or you&apos;re not invited to it.
-        </p>
-      </div>
-    );
-  }
+  if (!event) return <EventNotFound />;
 
-  const { data: options } = await supabase
-    .from("event_options")
-    .select("*")
-    .eq("event_id", eventId)
-    .order("sort_order", { ascending: true });
+  const [{ data: options }, { data: profiles }] = await Promise.all([
+    supabase.from("event_options").select("*").eq("event_id", eventId).order("sort_order"),
+    supabase.from("profiles").select("id, display_name"),
+  ]);
   const optionList = options ?? [];
   const optionIds = optionList.map((o) => o.id);
 
-  const { data: tallies } = optionIds.length
-    ? await supabase.from("event_option_tallies").select("*").in("event_option_id", optionIds)
+  // RLS lets every participant read all votes on the event, so tallies and
+  // "who said yes" are computed from the votes directly.
+  const { data: votes } = optionIds.length
+    ? await supabase.from("votes").select("*").in("event_option_id", optionIds)
     : { data: [] };
+  const allVotes = votes ?? [];
+  const nameOf = (profileId: string) =>
+    profiles?.find((p) => p.id === profileId)?.display_name ?? "Someone";
 
-  const { data: myVotes } = optionIds.length
-    ? await supabase
-        .from("votes")
-        .select("*")
-        .in("event_option_id", optionIds)
-        .eq("profile_id", auth.user.id)
-    : { data: [] };
-
-  const isOrganizer = event.organizer_id === auth.user.id;
-
-  const tallyRows = optionList.map((o) => {
-    const t = (tallies ?? []).find((t) => t.event_option_id === o.id);
+  const optionViews: OptionView[] = optionList.map((o) => {
+    const optionVotes = allVotes.filter((v) => v.event_option_id === o.id);
+    const yesVotes = optionVotes.filter((v) => v.response === "yes");
+    const maybeVotes = optionVotes.filter((v) => v.response === "maybe");
+    const mine = optionVotes.find((v) => v.profile_id === auth.user!.id);
     return {
       id: o.id,
       startsAt: o.starts_at,
+      allDay: o.all_day,
       label: o.label,
-      yes: t?.yes_count ?? 0,
-      maybe: t?.maybe_count ?? 0,
-      no: t?.no_count ?? 0,
-      totalAttendees: t?.total_attendees ?? 0,
+      yes: yesVotes.length,
+      maybe: maybeVotes.length,
+      no: optionVotes.length - yesVotes.length - maybeVotes.length,
+      totalAttendees: yesVotes.reduce((n, v) => n + 1 + v.adults_count + v.kids_count, 0),
+      yesNames: yesVotes.map((v) => nameOf(v.profile_id)),
+      maybeNames: maybeVotes.map((v) => nameOf(v.profile_id)),
+      myResponse: mine?.response ?? null,
+      myAdults: mine?.adults_count ?? 0,
+      myKids: mine?.kids_count ?? 0,
     };
   });
 
-  const voteFormOptions = optionList.map((o) => {
-    const v = (myVotes ?? []).find((v) => v.event_option_id === o.id);
-    return {
-      id: o.id,
-      startsAt: o.starts_at,
-      label: o.label,
-      myResponse: v?.response ?? null,
-      myAdults: v?.adults_count ?? 0,
-      myKids: v?.kids_count ?? 0,
-    };
-  });
+  // "Top pick": most people attending, then most yeses, then most maybes.
+  const ranked = [...optionViews].sort(
+    (a, b) => b.totalAttendees - a.totalAttendees || b.yes - a.yes || b.maybe - a.maybe
+  );
+  const topOptionId = ranked[0] && ranked[0].yes + ranked[0].maybe > 0 ? ranked[0].id : null;
 
-  const finalizedOption = optionList.find((o) => o.id === event.finalized_option_id);
-
-  // Names + headcount for the finalized option, shown once a time is locked in.
-  let attendeeLines: string[] = [];
-  if (event.status === "finalized" && finalizedOption) {
-    const { data: finalVotes } = await supabase
-      .from("votes")
-      .select("*")
-      .eq("event_option_id", finalizedOption.id)
-      .eq("response", "yes");
-    const profileIds = (finalVotes ?? []).map((v) => v.profile_id);
-    const { data: attendeeProfiles } = profileIds.length
-      ? await supabase.from("profiles").select("id, display_name").in("id", profileIds)
-      : { data: [] };
-    attendeeLines = (finalVotes ?? []).map((v) => {
-      const name = attendeeProfiles?.find((p) => p.id === v.profile_id)?.display_name ?? "Someone";
-      const extra = v.adults_count + v.kids_count;
-      return extra > 0 ? `${name} (+${extra})` : name;
-    });
-  }
+  const going = allVotes
+    .filter((v) => v.event_option_id === event.finalized_option_id && v.response === "yes")
+    .map((v) => ({ name: nameOf(v.profile_id), adults: v.adults_count, kids: v.kids_count }));
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{event.title}</h1>
-        {event.location && <p className="text-neutral-500">{event.location}</p>}
-        {event.description && <p className="mt-2 whitespace-pre-wrap">{event.description}</p>}
-        <div className="mt-2 flex gap-2 text-xs text-neutral-500">
-          {event.spouses_invited && (
-            <span className="rounded bg-neutral-100 px-2 py-0.5">Spouses invited</span>
-          )}
-          {event.kids_allowed && (
-            <span className="rounded bg-neutral-100 px-2 py-0.5">Kids allowed</span>
-          )}
-          <span className="rounded bg-neutral-100 px-2 py-0.5 uppercase">{event.status}</span>
-        </div>
-      </div>
-
-      {event.status === "finalized" && finalizedOption ? (
-        <div className="rounded border border-green-300 bg-green-50 p-4">
-          <p className="font-medium">
-            Locked in: {formatWhen(finalizedOption.starts_at)}
-          </p>
-          <p className="mt-1 text-sm text-neutral-600">
-            Going: {attendeeLines.length > 0 ? attendeeLines.join(", ") : "no one yet"}
-          </p>
-          {/* Plain <a>: next/link would prefetch/route-transition a file download. */}
-          <a
-            href={`/api/events/${eventId}/ics`}
-            download
-            className="mt-3 inline-block rounded bg-black px-3 py-2 text-sm text-white"
-          >
-            Add to calendar (.ics)
-          </a>
-        </div>
-      ) : (
-        <>
-          <VoteForm eventId={eventId} options={voteFormOptions} />
-          {isOrganizer && optionList.length > 0 && (
-            <FinalizeControl eventId={eventId} options={optionList} />
-          )}
-        </>
-      )}
-
-      <div>
-        <h2 className="mb-2 text-lg font-medium">Tally</h2>
-        <TallyTable options={tallyRows} finalizedOptionId={event.finalized_option_id} />
-      </div>
-    </div>
+    <EventView
+      event={{
+        id: event.id,
+        title: event.title,
+        emoji: eventEmoji(event.title, event.emoji),
+        description: event.description,
+        location: event.location,
+        spousesInvited: event.spouses_invited,
+        kidsAllowed: event.kids_allowed,
+        status: event.status,
+        organizerName: nameOf(event.organizer_id),
+      }}
+      isOrganizer={event.organizer_id === auth.user.id}
+      options={optionViews}
+      finalizedOptionId={event.finalized_option_id}
+      topOptionId={topOptionId}
+      going={going}
+    />
   );
 }

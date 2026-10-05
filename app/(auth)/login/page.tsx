@@ -4,6 +4,8 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AuthShell from "@/components/AuthShell";
+import { Button, ErrorText, inputClasses } from "@/components/ui";
 
 export default function LoginPage() {
   return (
@@ -43,37 +45,37 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Log in</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <AuthShell title="Friend Events" subtitle="Welcome back! Let's make some plans.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="email"
           required
+          autoComplete="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded border px-3 py-2"
+          className={inputClasses}
         />
         <input
           type="password"
           required
+          autoComplete="current-password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded border px-3 py-2"
+          className={inputClasses}
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
-        >
-          {loading ? "Logging in..." : "Log in"}
-        </button>
+        {error && <ErrorText>{error}</ErrorText>}
+        <Button type="submit" size="lg" full disabled={loading} className="mt-1">
+          {loading ? "Logging in…" : "Log in"}
+        </Button>
       </form>
-      <Link href="/forgot-password" className="text-sm text-blue-600 underline">
+      <Link
+        href="/forgot-password"
+        className="mt-4 block text-center text-sm font-bold text-violet-600 dark:text-violet-300"
+      >
         Forgot your password?
       </Link>
-    </div>
+    </AuthShell>
   );
 }

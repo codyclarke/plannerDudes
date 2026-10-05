@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AuthShell from "@/components/AuthShell";
+import { Button, ErrorText, inputClasses } from "@/components/ui";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -26,27 +28,23 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Set a new password</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <AuthShell emoji="🔐" title="New password" subtitle="Choose something you'll remember.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="password"
           required
           minLength={8}
-          placeholder="New password"
+          autoComplete="new-password"
+          placeholder="New password (8+ characters)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded border px-3 py-2"
+          className={inputClasses}
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
-        >
-          {loading ? "Saving..." : "Save password"}
-        </button>
+        {error && <ErrorText>{error}</ErrorText>}
+        <Button type="submit" size="lg" full disabled={loading}>
+          {loading ? "Saving…" : "Save password"}
+        </Button>
       </form>
-    </div>
+    </AuthShell>
   );
 }

@@ -62,12 +62,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   await sendEventFinalizedEmail({
     to: (recipientProfiles ?? []).map((p) => p.email),
     title: event.title,
-    whenText: formatWhen(option.starts_at),
+    whenText: formatWhen(option.starts_at, option.all_day),
     eventUrl,
   });
   await sendPushToProfiles(recipientIds, {
     title: "Time locked in",
-    body: `${event.title} is happening ${formatWhen(option.starts_at)}`,
+    body: `${event.title} is happening ${formatWhen(option.starts_at, option.all_day)}`,
     url: eventUrl,
   });
 

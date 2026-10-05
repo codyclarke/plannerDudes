@@ -33,6 +33,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     location: event.location,
     startsAt: option.starts_at,
     endsAt: option.ends_at,
+    allDay: option.all_day,
     url: `${process.env.NEXT_PUBLIC_SITE_URL}/events/${eventId}`,
   });
 

@@ -71,6 +71,7 @@ export interface Database {
           title: string;
           description: string | null;
           location: string | null;
+          emoji: string | null;
           spouses_invited: boolean;
           kids_allowed: boolean;
           status: "polling" | "finalized" | "cancelled";
@@ -84,6 +85,7 @@ export interface Database {
           title: string;
           description?: string | null;
           location?: string | null;
+          emoji?: string | null;
           spouses_invited?: boolean;
           kids_allowed?: boolean;
           status?: "polling" | "finalized" | "cancelled";
@@ -99,6 +101,7 @@ export interface Database {
           event_id: string;
           starts_at: string;
           ends_at: string | null;
+          all_day: boolean;
           label: string | null;
           sort_order: number;
         };
@@ -107,6 +110,7 @@ export interface Database {
           event_id: string;
           starts_at: string;
           ends_at?: string | null;
+          all_day?: boolean;
           label?: string | null;
           sort_order?: number;
         };

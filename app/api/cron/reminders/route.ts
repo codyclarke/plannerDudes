@@ -1,4 +1,4 @@
-import { formatWhen } from "@/lib/format";
+import { allDayDateKey, dateKeyInAppZone, formatWhen } from "@/lib/format";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEventReminderEmail } from "@/lib/email";
@@ -16,6 +16,9 @@ export async function GET(request: Request) {
   const now = Date.now();
   const windowStart = new Date(now + 20 * 60 * 60 * 1000);
   const windowEnd = new Date(now + 32 * 60 * 60 * 1000);
+  // All-day options have no meaningful instant (stored at 12:00 UTC on their
+  // date), so they're matched on "is the date tomorrow" in the group's zone.
+  const tomorrow = dateKeyInAppZone(new Date(now + 24 * 60 * 60 * 1000));
 
   const { data: events } = await admin
     .from("events")
@@ -36,7 +39,10 @@ export async function GET(request: Request) {
     if (!option) continue;
 
     const startsAt = new Date(option.starts_at);
-    if (startsAt < windowStart || startsAt > windowEnd) continue;
+    const isTomorrow = option.all_day
+      ? allDayDateKey(option.starts_at) === tomorrow
+      : startsAt >= windowStart && startsAt <= windowEnd;
+    if (!isTomorrow) continue;
 
     const { data: existingLog } = await admin
       .from("notifications_log")
@@ -57,7 +63,7 @@ export async function GET(request: Request) {
       .in("id", recipientIds);
 
     const eventUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/events/${event.id}`;
-    const whenText = formatWhen(option.starts_at);
+    const whenText = formatWhen(option.starts_at, option.all_day);
 
     await sendEventReminderEmail({
       to: (recipientProfiles ?? []).map((p) => p.email),

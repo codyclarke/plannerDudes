@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AuthShell from "@/components/AuthShell";
+import { Button, ErrorText, inputClasses } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -20,32 +23,38 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Reset password</h1>
-      {status === "sent" ? (
-        <p>Check your email for a reset link.</p>
-      ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <AuthShell
+      emoji={status === "sent" ? "📬" : "🔑"}
+      title={status === "sent" ? "Check your email" : "Reset password"}
+      subtitle={
+        status === "sent"
+          ? `We sent a reset link to ${email}.`
+          : "Enter your email and we'll send you a reset link."
+      }
+    >
+      {status !== "sent" && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
             type="email"
             required
+            autoComplete="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded border px-3 py-2"
+            className={inputClasses}
           />
-          {status === "error" && (
-            <p className="text-sm text-red-600">Something went wrong. Try again.</p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
-          >
-            {loading ? "Sending..." : "Send reset link"}
-          </button>
+          {status === "error" && <ErrorText>Something went wrong. Try again.</ErrorText>}
+          <Button type="submit" size="lg" full disabled={loading}>
+            {loading ? "Sending…" : "Send reset link"}
+          </Button>
         </form>
       )}
-    </div>
+      <Link
+        href="/login"
+        className="mt-4 block text-center text-sm font-bold text-violet-600 dark:text-violet-300"
+      >
+        ← Back to log in
+      </Link>
+    </AuthShell>
   );
 }

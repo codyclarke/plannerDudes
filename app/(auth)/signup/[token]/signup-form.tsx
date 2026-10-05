@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AuthShell from "@/components/AuthShell";
+import { Button, ErrorText, Field, inputClasses } from "@/components/ui";
 
 export default function SignupForm({ token, email }: { token: string; email: string }) {
   const router = useRouter();
@@ -40,35 +42,43 @@ export default function SignupForm({ token, email }: { token: string; email: str
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Join the group</h1>
-      <p className="text-sm text-neutral-500">Creating an account for {email}</p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input
-          required
-          placeholder="Your name"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        <input
-          type="password"
-          required
-          minLength={8}
-          placeholder="Choose a password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Create account"}
-        </button>
+    <AuthShell
+      emoji="🥳"
+      title="You're invited!"
+      subtitle={
+        <>
+          Set up your account for <strong className="text-foreground">{email}</strong>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <Field label="Your name" hint="This is what your friends will see.">
+          <input
+            required
+            autoComplete="name"
+            placeholder="Alex"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className={inputClasses}
+          />
+        </Field>
+        <Field label="Password">
+          <input
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="8+ characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={inputClasses}
+          />
+        </Field>
+        {error && <ErrorText>{error}</ErrorText>}
+        <Button type="submit" size="lg" full disabled={loading} className="mt-1">
+          {loading ? "Creating account…" : "Join the crew 🎉"}
+        </Button>
       </form>
-    </div>
+    </AuthShell>
   );
 }
