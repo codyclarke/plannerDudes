@@ -25,6 +25,7 @@ export interface Database {
           display_name: string;
           is_owner: boolean;
           avatar_path: string | null;
+          password_reset_sent_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -34,6 +35,7 @@ export interface Database {
           display_name: string;
           is_owner?: boolean;
           avatar_path?: string | null;
+          password_reset_sent_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -49,6 +51,7 @@ export interface Database {
           status: "pending" | "accepted" | "revoked";
           created_at: string;
           expires_at: string;
+          last_sent_at: string;
           accepted_by: string | null;
         };
         Insert: {
@@ -60,6 +63,7 @@ export interface Database {
           status?: "pending" | "accepted" | "revoked";
           created_at?: string;
           expires_at?: string;
+          last_sent_at?: string;
           accepted_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["invites"]["Insert"]>;

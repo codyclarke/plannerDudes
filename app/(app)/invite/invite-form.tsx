@@ -1,23 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Card, ErrorText, cn, inputClasses } from "@/components/ui";
+import CopyButton from "@/components/CopyButton";
 
 export default function InviteForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   // null when the email went out; otherwise why it didn't.
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [error, setError] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(false);
-    setCopied(false);
+    setError(null);
 
     const res = await fetch("/api/invites", {
       method: "POST",
@@ -28,24 +30,15 @@ export default function InviteForm() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(true);
+      setError(typeof body.error === "string" ? body.error : "Couldn't create that invite — try again.");
       return;
     }
     setSentTo(email);
+    setResent(!!body.resent);
     setInviteUrl(body.inviteUrl);
     setEmailError(body.emailSent ? null : (body.emailError ?? "The email couldn't be sent."));
     setEmail("");
-  }
-
-  async function copyLink() {
-    if (!inviteUrl) return;
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopied(true);
-    } catch {
-      // Clipboard can be unavailable (e.g. insecure context); the link is
-      // still shown for manual copying.
-    }
+    router.refresh(); // update the pending-invites list
   }
 
   return (
@@ -68,7 +61,7 @@ export default function InviteForm() {
 
       {error && (
         <div className="mt-3">
-          <ErrorText>Couldn&apos;t create that invite — try again.</ErrorText>
+          <ErrorText>{error}</ErrorText>
         </div>
       )}
 
@@ -84,15 +77,15 @@ export default function InviteForm() {
             </>
           ) : (
             <>
-              <p className="font-bold text-emerald-700 dark:text-emerald-300">🎉 Invite emailed to {sentTo}</p>
+              <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                {resent ? `🔁 Re-sent the pending invite to ${sentTo}` : `🎉 Invite emailed to ${sentTo}`}
+              </p>
               <p className="mt-1 text-sm text-muted">You can also send them the link directly:</p>
             </>
           )}
           <div className="mt-2 flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded-xl bg-surface px-3 py-2 text-xs">{inviteUrl}</code>
-            <Button type="button" variant="secondary" onClick={copyLink} className="shrink-0">
-              {copied ? "Copied ✓" : "Copy"}
-            </Button>
+            <CopyButton text={inviteUrl} className="shrink-0" />
           </div>
         </div>
       )}

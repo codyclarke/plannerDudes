@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
 import AuthShell from "@/components/AuthShell";
 import { Button, ErrorText, inputClasses } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
+  return (
+    <Suspense>
+      <ForgotPasswordForm />
+    </Suspense>
+  );
+}
+
+function ForgotPasswordForm() {
+  // Set when /api/auth/verify-reset bounced an expired or already-used link.
+  const expired = useSearchParams().get("expired") === "1";
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
   const [loading, setLoading] = useState(false);
@@ -14,14 +24,13 @@ export default function ForgotPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // Whatever address the app was opened on (localhost, LAN IP, Vercel).
-      // Supabase only honors it if it's listed under Auth → URL Configuration.
-      redirectTo: `${window.location.origin}/update-password`,
+    const res = await fetch("/api/password-reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     });
     setLoading(false);
-    setStatus(error ? "error" : "sent");
+    setStatus(res.ok ? "sent" : "error");
   }
 
   return (
@@ -30,12 +39,16 @@ export default function ForgotPasswordPage() {
       title={status === "sent" ? "Check your email" : "Reset password"}
       subtitle={
         status === "sent"
-          ? `We sent a reset link to ${email}.`
+          ? // Deliberately vague: doesn't reveal whether the email has an account.
+            `If ${email} has an account, a reset link is on its way. It expires in an hour.`
           : "Enter your email and we'll send you a reset link."
       }
     >
       {status !== "sent" && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          {expired && (
+            <ErrorText>That reset link expired or was already used — request a new one below.</ErrorText>
+          )}
           <input
             type="email"
             required

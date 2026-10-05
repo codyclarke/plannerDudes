@@ -52,6 +52,24 @@ export function sendInviteEmail(opts: { to: string; inviterName: string; inviteU
   });
 }
 
+export function sendPasswordResetEmail(opts: {
+  to: string;
+  resetUrl: string;
+  /** Set when the owner sent it on the person's behalf. */
+  sentByName?: string;
+}) {
+  const intro = opts.sentByName
+    ? `${esc(opts.sentByName)} sent you a link to reset your ${APP_NAME} password.`
+    : `Someone (hopefully you) asked to reset your ${APP_NAME} password.`;
+  return send({
+    to: opts.to,
+    subject: `Reset your ${APP_NAME} password`,
+    html: `<p>${intro}</p>
+           <p><a href="${esc(opts.resetUrl)}">Choose a new password</a></p>
+           <p>This link works once and expires in an hour. If you didn't ask for this, you can ignore it.</p>`,
+  });
+}
+
 export function sendEventCreatedEmail(opts: {
   to: string[];
   organizerName: string;
