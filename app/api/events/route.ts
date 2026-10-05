@@ -9,7 +9,7 @@ import { allDayStartsAt } from "@/lib/format";
 import { EVENT_IMAGES_BUCKET, isOwnImagePath } from "@/lib/images";
 import { deleteImage } from "@/lib/images.server";
 
-// Deletes a partially created event (options/invitees cascade) and its
+// Deletes a partially created event (its options cascade) and its
 // uploaded cover. Uses the admin client because RLS has no delete policy on events.
 async function rollback(eventId: string, imagePath: string | null) {
   await createAdminClient().from("events").delete().eq("id", eventId);
@@ -77,30 +77,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: optionsError.message }, { status: 500 });
   }
 
-  const inviteeIds = input.inviteeIds.filter((id) => id !== profile.id);
-  if (inviteeIds.length > 0) {
-    const { error: inviteesError } = await supabase
-      .from("event_invitees")
-      .insert(inviteeIds.map((profileId) => ({ event_id: event.id, profile_id: profileId })));
-    if (inviteesError) {
-      await rollback(event.id, imagePath);
-      return NextResponse.json({ error: inviteesError.message }, { status: 500 });
-    }
-  }
-
-  const { data: inviteeProfiles } = await supabase
+  // Every event is open to the whole group, so tell everyone except the organizer.
+  const { data: others } = await supabase
     .from("profiles")
-    .select("email")
-    .in("id", inviteeIds);
+    .select("id, email")
+    .eq("group_id", profile.group_id)
+    .neq("id", profile.id);
 
   const eventUrl = `${siteUrl(request)}/events/${event.id}`;
   await sendEventCreatedEmail({
-    to: (inviteeProfiles ?? []).map((p) => p.email),
+    to: (others ?? []).map((p) => p.email),
     organizerName: profile.display_name,
     title: event.title,
     eventUrl,
   });
-  await sendPushToProfiles(inviteeIds, {
+  await sendPushToProfiles((others ?? []).map((p) => p.id), {
     title: "New event",
     body: `${profile.display_name} proposed "${event.title}" — vote on a time`,
     url: eventUrl,

@@ -18,25 +18,37 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const { data: event } = await supabase
     .from("events")
-    .select("status")
+    .select("status, finalized_option_id")
     .eq("id", eventId)
     .single();
   if (!event) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-  if (event.status !== "polling") {
-    return NextResponse.json({ error: "voting is closed for this event" }, { status: 409 });
-  }
 
-  // Confirm every option actually belongs to this event, so a crafted
-  // payload can't vote on options from a different event.
-  const { data: options } = await supabase
-    .from("event_options")
-    .select("id")
-    .eq("event_id", eventId);
-  const validOptionIds = new Set((options ?? []).map((o) => o.id));
-  if (parsed.data.votes.some((v) => !validOptionIds.has(v.eventOptionId))) {
-    return NextResponse.json({ error: "option does not belong to this event" }, { status: 400 });
+  // While polling, any of the event's dates can be voted on. Once a date is
+  // locked in, RSVPs stay open for that date only (mirrors the votes RLS policy).
+  let allowedOptionIds: Set<string>;
+  if (event.status === "polling") {
+    const { data: options } = await supabase
+      .from("event_options")
+      .select("id")
+      .eq("event_id", eventId);
+    allowedOptionIds = new Set((options ?? []).map((o) => o.id));
+  } else if (event.status === "finalized" && event.finalized_option_id) {
+    allowedOptionIds = new Set([event.finalized_option_id]);
+  } else {
+    return NextResponse.json({ error: "this event is closed" }, { status: 409 });
+  }
+  if (parsed.data.votes.some((v) => !allowedOptionIds.has(v.eventOptionId))) {
+    return NextResponse.json(
+      {
+        error:
+          event.status === "finalized"
+            ? "the date is locked in — you can only RSVP for that date"
+            : "option does not belong to this event",
+      },
+      { status: 400 }
+    );
   }
 
   const { error } = await supabase.from("votes").upsert(

@@ -152,7 +152,7 @@ function EventCard({ event: e }: { event: DashboardEvent }) {
                 🗳️ Vote now
               </span>
             )}
-            {e.spousesInvited && <Chip tone="violet">💑 Spouses</Chip>}
+            {e.spousesInvited && <Chip tone="violet">💑 Partners</Chip>}
             {e.kidsAllowed && <Chip tone="sky">🧒 Kids</Chip>}
           </div>
         </div>

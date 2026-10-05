@@ -3,18 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EMOJI_CHOICES, eventEmoji } from "@/lib/emoji";
-import type { Person } from "@/lib/people";
 import { COVER_IMAGE, discardImage, uploadImage } from "@/lib/upload-image";
 import { EVENT_IMAGES_BUCKET } from "@/lib/images";
-import { Avatar, Button, Card, ErrorText, Field, PageTitle, cn, inputClasses } from "@/components/ui";
+import { Button, Card, ErrorText, Field, PageTitle, cn, inputClasses } from "@/components/ui";
 import CoverPicker from "@/components/CoverPicker";
 
-type Profile = Person;
 type CandidateInput = { date: string; time: string };
 
 const EMPTY_OPTION: CandidateInput = { date: "", time: "" };
 
-export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
+export default function NewEventForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   // null = not picked yet, so the emoji follows the title ("BBQ" -> 🍔).
@@ -24,7 +22,6 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
   const [location, setLocation] = useState("");
   const [spousesInvited, setSpousesInvited] = useState(false);
   const [kidsAllowed, setKidsAllowed] = useState(false);
-  const [inviteeIds, setInviteeIds] = useState<string[]>([]);
   // Each candidate is a date plus an optional time; no time = all-day option.
   const [options, setOptions] = useState<CandidateInput[]>([EMPTY_OPTION, EMPTY_OPTION]);
   const [cover, setCover] = useState<{ path: string; previewUrl: string } | null>(null);
@@ -54,11 +51,6 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
     if (cover) discardImage(EVENT_IMAGES_BUCKET, cover.path);
     setCover(null);
   }
-  const allInvited = profiles.length > 0 && inviteeIds.length === profiles.length;
-
-  function toggleInvitee(id: string) {
-    setInviteeIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }
 
   function updateOption(index: number, patch: Partial<CandidateInput>) {
     setOptions((prev) => prev.map((o, i) => (i === index ? { ...o, ...patch } : o)));
@@ -81,10 +73,6 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
       setError("Add at least 2 dates so people have something to vote on.");
       return;
     }
-    if (inviteeIds.length === 0) {
-      setError("Invite at least one friend.");
-      return;
-    }
 
     setLoading(true);
     const res = await fetch("/api/events", {
@@ -98,7 +86,6 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
         location: location || undefined,
         spousesInvited,
         kidsAllowed,
-        inviteeIds,
         // Date/time inputs carry no timezone; timed options are converted
         // here, in the browser's zone, so the server stores the instant the
         // user meant. All-day options send just the date.
@@ -191,7 +178,7 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
           </Field>
           <div className="flex flex-wrap gap-2">
             <TogglePill on={spousesInvited} onToggle={() => setSpousesInvited((v) => !v)}>
-              💑 Spouses invited
+              💑 Partners invited
             </TogglePill>
             <TogglePill on={kidsAllowed} onToggle={() => setKidsAllowed((v) => !v)}>
               🧒 Kids welcome
@@ -246,46 +233,6 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
             >
               + Add another date
             </button>
-          )}
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="font-display text-lg font-semibold">👯 Who&apos;s invited?</p>
-            {profiles.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setInviteeIds(allInvited ? [] : profiles.map((p) => p.id))}
-                className="text-sm font-bold text-violet-600 dark:text-violet-300"
-              >
-                {allInvited ? "Clear" : "Everyone"}
-              </button>
-            )}
-          </div>
-          {profiles.length === 0 ? (
-            <p className="text-sm text-muted">No one else is in your group yet — invite some friends first.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {profiles.map((p) => {
-                const on = inviteeIds.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => toggleInvitee(p.id)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-full py-1 pr-3.5 pl-1 text-sm font-bold ring-1 transition active:scale-95",
-                      on ? "bg-violet-600 text-white ring-violet-600" : "bg-surface-2 ring-line"
-                    )}
-                  >
-                    <Avatar name={p.name} src={p.avatarUrl} size="sm" />
-                    {p.name}
-                    {on && <span aria-hidden>✓</span>}
-                  </button>
-                );
-              })}
-            </div>
           )}
         </Card>
 

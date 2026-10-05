@@ -43,6 +43,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       no: optionVotes.length - yesVotes.length - maybeVotes.length,
       totalAttendees: yesVotes.reduce((n, v) => n + 1 + v.adults_count + v.kids_count, 0),
       yesPeople: yesVotes.map((v) => people.get(v.profile_id)),
+      maybePeople: maybeVotes.map((v) => people.get(v.profile_id)),
       myResponse: mine?.response ?? null,
       myAdults: mine?.adults_count ?? 0,
       myKids: mine?.kids_count ?? 0,

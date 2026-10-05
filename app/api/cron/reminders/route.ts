@@ -55,11 +55,16 @@ export async function GET(request: Request) {
       .maybeSingle();
     if (existingLog) continue;
 
-    const { data: invitees } = await admin
-      .from("event_invitees")
+    // Events are open to the whole group, so remind the people actually
+    // coming: Yes/Maybe on the locked-in date, plus the organizer.
+    const { data: attendingVotes } = await admin
+      .from("votes")
       .select("profile_id")
-      .eq("event_id", event.id);
-    const recipientIds = [...new Set([...(invitees ?? []).map((i) => i.profile_id), event.organizer_id])];
+      .eq("event_option_id", option.id)
+      .in("response", ["yes", "maybe"]);
+    const recipientIds = [
+      ...new Set([...(attendingVotes ?? []).map((v) => v.profile_id), event.organizer_id]),
+    ];
     const { data: recipientProfiles } = await admin
       .from("profiles")
       .select("email")

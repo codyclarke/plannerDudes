@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Person } from "@/lib/people";
 import { formatWhen } from "@/lib/format";
-import { Avatar, Card, CalendarTile, Chip, SectionTitle, buttonClasses, cn, eventTheme } from "@/components/ui";
+import { Avatar, AvatarStack, Card, CalendarTile, Chip, SectionTitle, buttonClasses, cn, eventTheme } from "@/components/ui";
 import VoteForm from "./vote-form";
 import FinalizeControl from "./finalize-control";
 import CoverEditor from "./cover-editor";
+import RsvpForm from "./rsvp-form";
 
 export type OptionView = {
   id: string;
@@ -16,6 +17,7 @@ export type OptionView = {
   no: number;
   totalAttendees: number;
   yesPeople: Person[];
+  maybePeople: Person[];
   myResponse: "yes" | "maybe" | "no" | null;
   myAdults: number;
   myKids: number;
@@ -93,7 +95,7 @@ export default function EventView({
               <Chip tone="amber">🗳️ Voting open</Chip>
             )}
             <Chip tone={event.spousesInvited ? "violet" : "neutral"}>
-              {event.spousesInvited ? "💑 Spouses invited" : "Friends only"}
+              {event.spousesInvited ? "💑 Partners invited" : "Friends only"}
             </Chip>
             <Chip tone={event.kidsAllowed ? "sky" : "neutral"}>
               {event.kidsAllowed ? "🧒 Kids welcome" : "No kids"}
@@ -110,7 +112,13 @@ export default function EventView({
       </section>
 
       {event.status === "finalized" && finalized ? (
-        <LockedIn eventId={event.id} option={finalized} going={going} />
+        <LockedIn
+          eventId={event.id}
+          option={finalized}
+          going={going}
+          spousesInvited={event.spousesInvited}
+          kidsAllowed={event.kidsAllowed}
+        />
       ) : (
         <>
           <section>
@@ -136,10 +144,14 @@ function LockedIn({
   eventId,
   option,
   going,
+  spousesInvited,
+  kidsAllowed,
 }: {
   eventId: string;
   option: OptionView;
   going: EventViewProps["going"];
+  spousesInvited: boolean;
+  kidsAllowed: boolean;
 }) {
   const headcount = going.reduce((n, g) => n + 1 + g.adults + g.kids, 0);
   return (
@@ -162,13 +174,18 @@ function LockedIn({
           📅 Add to my calendar
         </a>
 
+        {/* RSVPs stay open after lock-in, for this date only. */}
+        <div className="mt-5">
+          <RsvpForm eventId={eventId} option={option} spousesInvited={spousesInvited} kidsAllowed={kidsAllowed} />
+        </div>
+
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold">Who&apos;s coming</h2>
             {headcount > 0 && <Chip tone="violet">👥 {headcount} total</Chip>}
           </div>
           {going.length === 0 ? (
-            <p className="text-muted">No one has confirmed this date yet.</p>
+            <p className="text-muted">No one has said they&apos;re in yet.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {going.map((g) => (
@@ -187,6 +204,14 @@ function LockedIn({
               ))}
             </ul>
           )}
+          {option.maybePeople.length > 0 && (
+            <div className="mt-3 flex items-center gap-2">
+              <AvatarStack people={option.maybePeople} />
+              <span className="text-sm font-semibold text-muted">
+                🤔 {option.maybePeople.map((p) => p.name).join(", ")} {option.maybePeople.length === 1 ? "is" : "are"} a maybe
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -198,7 +223,7 @@ export function EventNotFound() {
     <Card className="flex flex-col items-center gap-2 py-10 text-center">
       <span className="text-5xl">🕵️</span>
       <p className="font-display text-xl font-semibold">Event not found</p>
-      <p className="text-muted">It may have been removed, or you&apos;re not invited to it.</p>
+      <p className="text-muted">It may have been removed, or the link is wrong.</p>
       <Link href="/dashboard" className={cn(buttonClasses("secondary"), "mt-3")}>
         Back to events
       </Link>

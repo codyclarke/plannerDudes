@@ -50,10 +50,11 @@ export default async function DashboardPage() {
   }
 
   const eventIds = events.map((e) => e.id);
-  const [{ data: options }, { data: invitees }] = await Promise.all([
-    supabase.from("event_options").select("*").in("event_id", eventIds).order("sort_order"),
-    supabase.from("event_invitees").select("*").in("event_id", eventIds),
-  ]);
+  const { data: options } = await supabase
+    .from("event_options")
+    .select("*")
+    .in("event_id", eventIds)
+    .order("sort_order");
   const optionIds = (options ?? []).map((o) => o.id);
   const { data: votes } = optionIds.length
     ? await supabase.from("votes").select("*").in("event_option_id", optionIds)
@@ -71,10 +72,6 @@ export default async function DashboardPage() {
     const going = finalizedOption
       ? eventVotes.filter((v) => v.event_option_id === finalizedOption.id && v.response === "yes")
       : [];
-    const participants = new Set([
-      event.organizer_id,
-      ...(invitees ?? []).filter((i) => i.event_id === event.id).map((i) => i.profile_id),
-    ]);
     const voters = new Set(eventVotes.map((v) => v.profile_id));
 
     return {
@@ -91,7 +88,8 @@ export default async function DashboardPage() {
       going: going.map((v) => people.get(v.profile_id)),
       goingExtra: going.reduce((n, v) => n + v.adults_count + v.kids_count, 0),
       votedCount: voters.size,
-      participantCount: participants.size,
+      // Every event is open to the whole group.
+      participantCount: people.list.length,
       iVoted: voters.has(myId),
     };
   });

@@ -121,12 +121,6 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["event_options"]["Insert"]>;
         Relationships: never[];
       };
-      event_invitees: {
-        Row: { event_id: string; profile_id: string };
-        Insert: { event_id: string; profile_id: string };
-        Update: Partial<Database["public"]["Tables"]["event_invitees"]["Insert"]>;
-        Relationships: never[];
-      };
       votes: {
         Row: {
           id: string;

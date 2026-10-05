@@ -11,8 +11,8 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  // RLS (events_select) already limits this to events the caller organizes
-  // or is invited to; a non-participant gets no row, same as a 404.
+  // RLS (events_select) already limits this to events in the caller's group;
+  // anyone else gets no row, same as a 404.
   const { data: event } = await supabase.from("events").select("*").eq("id", eventId).single();
   if (!event || event.status !== "finalized" || !event.finalized_option_id) {
     return NextResponse.json({ error: "event is not finalized" }, { status: 404 });

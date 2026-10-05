@@ -33,7 +33,6 @@ export const createEventSchema = z.object({
   imagePath: z.string().max(200).optional(), // ownership checked in the route
   spousesInvited: z.boolean(),
   kidsAllowed: z.boolean(),
-  inviteeIds: z.array(z.string().uuid()).min(1),
   options: z.array(eventOptionInput).min(2).max(5),
 });
 

@@ -49,15 +49,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  const { data: invitees } = await supabase
-    .from("event_invitees")
-    .select("profile_id")
-    .eq("event_id", eventId);
-  const recipientIds = [...new Set([...(invitees ?? []).map((i) => i.profile_id), auth.user.id])];
+  // Every event is open to the whole group, so everyone hears it's locked in.
   const { data: recipientProfiles } = await supabase
     .from("profiles")
-    .select("email")
-    .in("id", recipientIds);
+    .select("id, email")
+    .eq("group_id", event.group_id);
+  const recipientIds = (recipientProfiles ?? []).map((p) => p.id);
 
   const eventUrl = `${siteUrl(request)}/events/${eventId}`;
   await sendEventFinalizedEmail({

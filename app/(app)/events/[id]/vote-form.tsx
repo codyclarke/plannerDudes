@@ -3,17 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { dateParts } from "@/lib/format";
-import { AvatarStack, Button, CalendarTile, Chip, ErrorText, Stepper, cn } from "@/components/ui";
+import { AvatarStack, Button, CalendarTile, Chip, ErrorText, cn } from "@/components/ui";
 import type { OptionView } from "./event-view";
+import { type Answer, HeadcountSteppers, ResponseButtons, toVotePayload } from "./response-controls";
 
-type Response = "yes" | "maybe" | "no";
-type Answer = { response: Response | null; adults: number; kids: number };
-
-const CHOICES: { value: Response; label: string; selected: string }[] = [
-  { value: "yes", label: "✅ Yes", selected: "bg-emerald-500 text-white shadow-md shadow-emerald-500/30" },
-  { value: "maybe", label: "🤔 Maybe", selected: "bg-amber-400 text-amber-950 shadow-md shadow-amber-400/30" },
-  { value: "no", label: "😢 Can't", selected: "bg-rose-500 text-white shadow-md shadow-rose-500/30" },
-];
+const LABELS = { yes: "✅ Yes", maybe: "🤔 Maybe", no: "😢 Can't" };
 
 export default function VoteForm({
   eventId,
@@ -59,18 +53,7 @@ export default function VoteForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        votes: answered.map((o) => {
-          const a = answers[o.id];
-          // Headcount only applies when attending, and only for the extra
-          // people this event actually allows.
-          const attending = a.response !== "no";
-          return {
-            eventOptionId: o.id,
-            response: a.response,
-            adultsCount: attending && spousesInvited ? a.adults : 0,
-            kidsCount: attending && kidsAllowed ? a.kids : 0,
-          };
-        }),
+        votes: answered.map((o) => toVotePayload(o.id, answers[o.id], { spousesInvited, kidsAllowed })),
       }),
     });
     if (!res.ok) {
@@ -87,7 +70,6 @@ export default function VoteForm({
       {options.map((o) => {
         const a = answers[o.id];
         const time = dateParts(o.startsAt, o.allDay).time ?? "All day";
-        const showHeadcount = (a.response === "yes" || a.response === "maybe") && (spousesInvited || kidsAllowed);
         return (
           <div
             key={o.id}
@@ -116,33 +98,17 @@ export default function VoteForm({
               </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {CHOICES.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  aria-pressed={a.response === c.value}
-                  onClick={() => update(o.id, { response: c.value })}
-                  className={cn(
-                    "rounded-2xl py-2.5 text-sm font-extrabold transition active:scale-95",
-                    a.response === c.value ? c.selected : "bg-surface-2 text-muted hover:text-foreground"
-                  )}
-                >
-                  {c.label}
-                </button>
-              ))}
+            <div className="mt-3">
+              <ResponseButtons value={a.response} onChange={(response) => update(o.id, { response })} labels={LABELS} />
             </div>
-
-            {showHeadcount && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {spousesInvited && (
-                  <Stepper label="+ adults" value={a.adults} onChange={(adults) => update(o.id, { adults })} />
-                )}
-                {kidsAllowed && (
-                  <Stepper label="+ kids" value={a.kids} onChange={(kids) => update(o.id, { kids })} />
-                )}
-              </div>
-            )}
+            <div className="mt-3 empty:hidden">
+              <HeadcountSteppers
+                answer={a}
+                onChange={(patch) => update(o.id, patch)}
+                spousesInvited={spousesInvited}
+                kidsAllowed={kidsAllowed}
+              />
+            </div>
           </div>
         );
       })}
