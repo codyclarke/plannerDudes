@@ -1,5 +1,6 @@
 import { formatWhen } from "@/lib/format";
 import { NextResponse } from "next/server";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { finalizeSchema } from "@/lib/validations";
 import { sendEventFinalizedEmail } from "@/lib/email";
@@ -58,7 +59,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     .select("email")
     .in("id", recipientIds);
 
-  const eventUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/events/${eventId}`;
+  const eventUrl = `${siteUrl(request)}/events/${eventId}`;
   await sendEventFinalizedEmail({
     to: (recipientProfiles ?? []).map((p) => p.email),
     title: event.title,

@@ -6,7 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // (a second call just fails because an owner already exists).
 export async function POST(request: Request) {
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.BOOTSTRAP_SECRET}`) {
+  // An unset secret must not turn into the accepted header "Bearer undefined".
+  const secret = process.env.BOOTSTRAP_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

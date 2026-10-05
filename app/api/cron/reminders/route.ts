@@ -1,5 +1,6 @@
 import { allDayDateKey, dateKeyInAppZone, formatWhen } from "@/lib/format";
 import { NextResponse } from "next/server";
+import { siteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEventReminderEmail } from "@/lib/email";
 import { sendPushToProfiles } from "@/lib/push";
@@ -8,7 +9,9 @@ import { sendPushToProfiles } from "@/lib/push";
 // since it only runs daily — catches "tomorrow" regardless of exact cron time.
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // An unset secret must not turn into the accepted header "Bearer undefined".
+  const secret = process.env.CRON_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -62,7 +65,7 @@ export async function GET(request: Request) {
       .select("email")
       .in("id", recipientIds);
 
-    const eventUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/events/${event.id}`;
+    const eventUrl = `${siteUrl(request)}/events/${event.id}`;
     const whenText = formatWhen(option.starts_at, option.all_day);
 
     await sendEventReminderEmail({

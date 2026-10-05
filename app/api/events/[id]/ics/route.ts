@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { buildIcsFile } from "@/lib/ics";
 
@@ -34,7 +35,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     startsAt: option.starts_at,
     endsAt: option.ends_at,
     allDay: option.all_day,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/events/${eventId}`,
+    url: `${siteUrl(request)}/events/${eventId}`,
   });
 
   return new NextResponse(ics, {

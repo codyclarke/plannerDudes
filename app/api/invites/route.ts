@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { createInviteSchema } from "@/lib/validations";
 import { sendInviteEmail } from "@/lib/email";
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message ?? "failed to create invite" }, { status: 500 });
   }
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/signup/${token}`;
+  const inviteUrl = `${siteUrl(request)}/signup/${token}`;
   const email = await sendInviteEmail({
     to: parsed.data.email,
     inviterName: profile.display_name,

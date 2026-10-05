@@ -16,7 +16,9 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/update-password`,
+      // Whatever address the app was opened on (localhost, LAN IP, Vercel).
+      // Supabase only honors it if it's listed under Auth → URL Configuration.
+      redirectTo: `${window.location.origin}/update-password`,
     });
     setLoading(false);
     setStatus(error ? "error" : "sent");

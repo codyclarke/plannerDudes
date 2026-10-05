@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { createEventSchema } from "@/lib/validations";
 import { sendEventCreatedEmail } from "@/lib/email";
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     .select("email")
     .in("id", inviteeIds);
 
-  const eventUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/events/${event.id}`;
+  const eventUrl = `${siteUrl(request)}/events/${event.id}`;
   await sendEventCreatedEmail({
     to: (inviteeProfiles ?? []).map((p) => p.email),
     organizerName: profile.display_name,
