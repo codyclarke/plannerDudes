@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { APP_NAME } from "@/lib/app";
 import "./globals.css";
 
 // Fredoka for headings (rounded, playful), Nunito for body text.
@@ -15,7 +16,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Dude Planner",
+  title: APP_NAME,
   description: "Plan events and find a time that works for everyone",
   manifest: "/manifest.json",
   icons: {
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Dude Planner",
+    title: APP_NAME,
   },
 };
 

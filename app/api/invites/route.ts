@@ -46,11 +46,18 @@ export async function POST(request: Request) {
   }
 
   const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/signup/${token}`;
-  await sendInviteEmail({
+  const email = await sendInviteEmail({
     to: parsed.data.email,
     inviterName: profile.display_name,
     inviteUrl,
   });
 
-  return NextResponse.json({ ok: true, inviteUrl });
+  // The invite is valid either way — if the email didn't go out, the page
+  // tells the inviter to share the link themselves.
+  return NextResponse.json({
+    ok: true,
+    inviteUrl,
+    emailSent: email.sent,
+    emailError: email.sent ? null : email.reason,
+  });
 }

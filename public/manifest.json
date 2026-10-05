@@ -1,6 +1,6 @@
 {
-  "name": "Friend Events",
-  "short_name": "Events",
+  "name": "Dude Planner",
+  "short_name": "Dude Planner",
   "description": "Plan events and find a time that works for everyone",
   "start_url": "/dashboard",
   "scope": "/",

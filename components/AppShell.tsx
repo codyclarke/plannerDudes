@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_NAME } from "@/lib/app";
 import { Avatar } from "@/components/ui";
 import { BottomNav, TopNavLinks } from "@/components/AppNav";
 
@@ -22,7 +23,7 @@ export default function AppShell({
             <span className="grid size-9 place-items-center rounded-xl bg-linear-to-br from-violet-600 via-fuchsia-500 to-orange-400 text-lg shadow-md shadow-fuchsia-500/30">
               🎉
             </span>
-            <span className="font-display text-xl font-semibold tracking-tight">Dude Planner</span>
+            <span className="font-display text-xl font-semibold tracking-tight">{APP_NAME}</span>
           </Link>
           <div className="flex items-center gap-3">
             <TopNavLinks />

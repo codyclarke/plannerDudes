@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AuthShell from "@/components/AuthShell";
+import { APP_NAME } from "@/lib/app";
 import { Button, ErrorText, inputClasses } from "@/components/ui";
 
 export default function LoginPage() {
@@ -45,7 +46,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthShell title="Friend Events" subtitle="Welcome back! Let's make some plans.">
+    <AuthShell title={APP_NAME} subtitle="Welcome back! Let's make some plans.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="email"
