@@ -217,7 +217,31 @@ const AVATAR_COLORS = [
   "bg-indigo-500",
 ];
 
-export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
+const AVATAR_SIZES = {
+  sm: "size-7 text-[11px]",
+  md: "size-9 text-sm",
+  lg: "size-14 text-xl",
+  xl: "size-24 text-3xl",
+} as const;
+
+/** Profile photo when there is one, otherwise colored initials. */
+export function Avatar({
+  name,
+  src,
+  size = "md",
+}: {
+  name: string;
+  src?: string | null;
+  size?: keyof typeof AVATAR_SIZES;
+}) {
+  const base = cn("inline-grid shrink-0 place-items-center rounded-full ring-2 ring-surface", AVATAR_SIZES[size]);
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL; next/image optimization adds nothing
+      <img src={src} alt={name} title={name} className={cn(base, "bg-surface-2 object-cover")} />
+    );
+  }
+
   // Small avatars overlap in stacks, so they show a single initial.
   const initials = name
     .split(/\s+/)
@@ -228,27 +252,27 @@ export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md"
   return (
     <span
       title={name}
-      className={cn(
-        "inline-grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-surface",
-        AVATAR_COLORS[hash(name) % AVATAR_COLORS.length],
-        size === "sm" && "size-7 text-[11px]",
-        size === "md" && "size-9 text-sm",
-        size === "lg" && "size-14 text-xl"
-      )}
+      className={cn(base, "font-bold text-white", AVATAR_COLORS[hash(name) % AVATAR_COLORS.length])}
     >
       {initials || "?"}
     </span>
   );
 }
 
-export function AvatarStack({ names, max = 4 }: { names: string[]; max?: number }) {
-  if (names.length === 0) return null;
-  const shown = names.slice(0, max);
-  const extra = names.length - shown.length;
+export function AvatarStack({
+  people,
+  max = 4,
+}: {
+  people: { name: string; avatarUrl: string | null }[];
+  max?: number;
+}) {
+  if (people.length === 0) return null;
+  const shown = people.slice(0, max);
+  const extra = people.length - shown.length;
   return (
     <div className="flex items-center -space-x-2">
-      {shown.map((n, i) => (
-        <Avatar key={`${n}-${i}`} name={n} size="sm" />
+      {shown.map((p, i) => (
+        <Avatar key={`${p.name}-${i}`} name={p.name} src={p.avatarUrl} size="sm" />
       ))}
       {extra > 0 && (
         <span className="inline-grid size-7 place-items-center rounded-full bg-surface-2 text-[11px] font-bold text-muted ring-2 ring-surface">

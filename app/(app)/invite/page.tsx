@@ -1,14 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { loadPeople } from "@/lib/people.server";
 import { Avatar, Card, Chip, PageTitle, SectionTitle } from "@/components/ui";
 import InviteForm from "./invite-form";
 
 export default async function FriendsPage() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name, is_owner")
-    .order("display_name");
+  const people = await loadPeople(supabase);
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
@@ -20,17 +18,17 @@ export default async function FriendsPage() {
 
       <section>
         <SectionTitle>
-          Members <span className="text-muted">· {profiles?.length ?? 0}</span>
+          Members <span className="text-muted">· {people.list.length}</span>
         </SectionTitle>
         <Card className="p-2">
           <ul className="divide-y divide-line">
-            {(profiles ?? []).map((p) => (
+            {people.list.map((p) => (
               <li key={p.id} className="flex items-center gap-3 p-3">
-                <Avatar name={p.display_name} />
-                <span className="font-bold">{p.display_name}</span>
+                <Avatar name={p.name} src={p.avatarUrl} />
+                <span className="font-bold">{p.name}</span>
                 <span className="ml-auto flex gap-1.5">
                   {p.id === auth.user?.id && <Chip tone="violet">You</Chip>}
-                  {p.is_owner && <Chip tone="amber">👑 Owner</Chip>}
+                  {p.isOwner && <Chip tone="amber">👑 Owner</Chip>}
                 </span>
               </li>
             ))}

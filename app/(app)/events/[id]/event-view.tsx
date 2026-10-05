@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { Person } from "@/lib/people";
 import { formatWhen } from "@/lib/format";
 import { Avatar, Card, CalendarTile, Chip, SectionTitle, buttonClasses, cn, eventTheme } from "@/components/ui";
 import VoteForm from "./vote-form";
 import FinalizeControl from "./finalize-control";
+import CoverEditor from "./cover-editor";
 
 export type OptionView = {
   id: string;
@@ -13,8 +15,7 @@ export type OptionView = {
   maybe: number;
   no: number;
   totalAttendees: number;
-  yesNames: string[];
-  maybeNames: string[];
+  yesPeople: Person[];
   myResponse: "yes" | "maybe" | "no" | null;
   myAdults: number;
   myKids: number;
@@ -31,12 +32,13 @@ export type EventViewProps = {
     kidsAllowed: boolean;
     status: "polling" | "finalized" | "cancelled";
     organizerName: string;
+    imageUrl: string | null;
   };
   isOrganizer: boolean;
   options: OptionView[];
   finalizedOptionId: string | null;
   topOptionId: string | null;
-  going: { name: string; adults: number; kids: number }[];
+  going: (Person & { adults: number; kids: number })[];
 };
 
 export default function EventView({
@@ -56,31 +58,55 @@ export default function EventView({
         ← All events
       </Link>
 
-      <section className={cn("rounded-[2rem] p-5 ring-1", theme.card)}>
-        <div className="flex items-start gap-4">
-          <span className={cn("grid size-16 shrink-0 place-items-center rounded-3xl text-4xl", theme.emoji)}>
-            {event.emoji}
-          </span>
-          <div className="min-w-0">
-            <h1 className="font-display text-3xl leading-tight font-semibold">{event.title}</h1>
-            <p className="text-sm font-semibold text-muted">Organized by {event.organizerName}</p>
+      <section className={cn("overflow-hidden rounded-[2rem] ring-1", theme.card)}>
+        {/* Header photo: organizers can add/change/remove it in place. */}
+        {isOrganizer && event.imageUrl ? (
+          <CoverEditor eventId={event.id} imageUrl={event.imageUrl} />
+        ) : event.imageUrl ? (
+          <div className="aspect-[16/7] w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL; next/image optimization adds nothing */}
+            <img src={event.imageUrl} alt="" className="size-full object-cover" />
           </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {event.status === "finalized" ? (
-            <Chip tone="emerald">🔒 Locked in</Chip>
-          ) : (
-            <Chip tone="amber">🗳️ Voting open</Chip>
+        ) : null}
+
+        <div className="p-5">
+          <div className="flex items-start gap-4">
+            <span
+              className={cn(
+                "grid size-16 shrink-0 place-items-center rounded-3xl text-4xl",
+                theme.emoji,
+                // With a photo, the emoji bubble overlaps its bottom edge.
+                event.imageUrl && "relative z-10 -mt-12 bg-surface shadow-lg ring-4 ring-surface"
+              )}
+            >
+              {event.emoji}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-3xl leading-tight font-semibold">{event.title}</h1>
+              <p className="text-sm font-semibold text-muted">Organized by {event.organizerName}</p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {event.status === "finalized" ? (
+              <Chip tone="emerald">🔒 Locked in</Chip>
+            ) : (
+              <Chip tone="amber">🗳️ Voting open</Chip>
+            )}
+            <Chip tone={event.spousesInvited ? "violet" : "neutral"}>
+              {event.spousesInvited ? "💑 Spouses invited" : "Friends only"}
+            </Chip>
+            <Chip tone={event.kidsAllowed ? "sky" : "neutral"}>
+              {event.kidsAllowed ? "🧒 Kids welcome" : "No kids"}
+            </Chip>
+          </div>
+          {event.location && <p className="mt-4 font-semibold">📍 {event.location}</p>}
+          {event.description && <p className="mt-2 whitespace-pre-wrap text-muted">{event.description}</p>}
+          {isOrganizer && !event.imageUrl && (
+            <div className="mt-4">
+              <CoverEditor eventId={event.id} imageUrl={null} />
+            </div>
           )}
-          <Chip tone={event.spousesInvited ? "violet" : "neutral"}>
-            {event.spousesInvited ? "💑 Spouses invited" : "Friends only"}
-          </Chip>
-          <Chip tone={event.kidsAllowed ? "sky" : "neutral"}>
-            {event.kidsAllowed ? "🧒 Kids welcome" : "No kids"}
-          </Chip>
         </div>
-        {event.location && <p className="mt-4 font-semibold">📍 {event.location}</p>}
-        {event.description && <p className="mt-2 whitespace-pre-wrap text-muted">{event.description}</p>}
       </section>
 
       {event.status === "finalized" && finalized ? (
@@ -145,9 +171,9 @@ function LockedIn({
             <p className="text-muted">No one has confirmed this date yet.</p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {going.map((g, i) => (
-                <li key={`${g.name}-${i}`} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2.5">
-                  <Avatar name={g.name} />
+              {going.map((g) => (
+                <li key={g.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2.5">
+                  <Avatar name={g.name} src={g.avatarUrl} />
                   <span className="font-bold">{g.name}</span>
                   <span className="ml-auto text-sm font-semibold text-muted">
                     {[

@@ -2,7 +2,15 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui";
 import { BottomNav, TopNavLinks } from "@/components/AppNav";
 
-export default function AppShell({ name, children }: { name: string; children: React.ReactNode }) {
+export default function AppShell({
+  name,
+  avatarUrl,
+  children,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex min-h-screen flex-col">
       <header
@@ -19,7 +27,7 @@ export default function AppShell({ name, children }: { name: string; children: R
           <div className="flex items-center gap-3">
             <TopNavLinks />
             <Link href="/settings" aria-label="Settings" className="transition active:scale-90">
-              <Avatar name={name} />
+              <Avatar name={name} src={avatarUrl} />
             </Link>
           </div>
         </div>

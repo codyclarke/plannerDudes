@@ -30,6 +30,7 @@ export const createEventSchema = z.object({
   description: z.string().trim().max(2000).optional(),
   location: z.string().trim().max(200).optional(),
   emoji: z.string().trim().min(1).max(16).optional(),
+  imagePath: z.string().max(200).optional(), // ownership checked in the route
   spousesInvited: z.boolean(),
   kidsAllowed: z.boolean(),
   inviteeIds: z.array(z.string().uuid()).min(1),
@@ -45,6 +46,14 @@ export const voteSchema = z.object({
 
 export const voteBatchSchema = z.object({
   votes: z.array(voteSchema).min(1),
+});
+
+export const updateEventImageSchema = z.object({
+  imagePath: z.string().max(200).nullable(), // null removes the cover
+});
+
+export const updateAvatarSchema = z.object({
+  avatarPath: z.string().max(200).nullable(), // null removes the photo
 });
 
 export const finalizeSchema = z.object({

@@ -24,6 +24,7 @@ export interface Database {
           email: string;
           display_name: string;
           is_owner: boolean;
+          avatar_path: string | null;
           created_at: string;
         };
         Insert: {
@@ -32,6 +33,7 @@ export interface Database {
           email: string;
           display_name: string;
           is_owner?: boolean;
+          avatar_path?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -72,6 +74,7 @@ export interface Database {
           description: string | null;
           location: string | null;
           emoji: string | null;
+          image_path: string | null;
           spouses_invited: boolean;
           kids_allowed: boolean;
           status: "polling" | "finalized" | "cancelled";
@@ -86,6 +89,7 @@ export interface Database {
           description?: string | null;
           location?: string | null;
           emoji?: string | null;
+          image_path?: string | null;
           spouses_invited?: boolean;
           kids_allowed?: boolean;
           status?: "polling" | "finalized" | "cancelled";

@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EMOJI_CHOICES, eventEmoji } from "@/lib/emoji";
+import type { Person } from "@/lib/people";
+import { COVER_IMAGE, discardImage, uploadImage } from "@/lib/upload-image";
+import { EVENT_IMAGES_BUCKET } from "@/lib/images";
 import { Avatar, Button, Card, ErrorText, Field, PageTitle, cn, inputClasses } from "@/components/ui";
+import CoverPicker from "@/components/CoverPicker";
 
-type Profile = { id: string; display_name: string };
+type Profile = Person;
 type CandidateInput = { date: string; time: string };
 
 const EMPTY_OPTION: CandidateInput = { date: "", time: "" };
@@ -23,10 +27,33 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
   const [inviteeIds, setInviteeIds] = useState<string[]>([]);
   // Each candidate is a date plus an optional time; no time = all-day option.
   const [options, setOptions] = useState<CandidateInput[]>([EMPTY_OPTION, EMPTY_OPTION]);
+  const [cover, setCover] = useState<{ path: string; previewUrl: string } | null>(null);
+  const [coverBusy, setCoverBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const emoji = eventEmoji(title, pickedEmoji);
+
+  // Photos upload as soon as they're picked; one that gets replaced or
+  // removed before the event is created is deleted again.
+  async function pickCover(file: File) {
+    setError(null);
+    setCoverBusy(true);
+    try {
+      const uploaded = await uploadImage(EVENT_IMAGES_BUCKET, file, COVER_IMAGE);
+      if (cover) discardImage(EVENT_IMAGES_BUCKET, cover.path);
+      setCover(uploaded);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed — try again.");
+    } finally {
+      setCoverBusy(false);
+    }
+  }
+
+  function removeCover() {
+    if (cover) discardImage(EVENT_IMAGES_BUCKET, cover.path);
+    setCover(null);
+  }
   const allInvited = profiles.length > 0 && inviteeIds.length === profiles.length;
 
   function toggleInvitee(id: string) {
@@ -66,6 +93,7 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
       body: JSON.stringify({
         title,
         emoji,
+        imagePath: cover?.path,
         description: description || undefined,
         location: location || undefined,
         spousesInvited,
@@ -95,6 +123,12 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
     <div className="mx-auto max-w-xl">
       <PageTitle sub="Propose a few dates and let the crew vote.">Plan something ✨</PageTitle>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <CoverPicker
+          imageUrl={cover?.previewUrl ?? null}
+          busy={coverBusy}
+          onPick={pickCover}
+          onRemove={removeCover}
+        />
         <Card className="flex flex-col gap-4">
           <div className="flex items-end gap-3">
             <button
@@ -245,8 +279,8 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
                       on ? "bg-violet-600 text-white ring-violet-600" : "bg-surface-2 ring-line"
                     )}
                   >
-                    <Avatar name={p.display_name} size="sm" />
-                    {p.display_name}
+                    <Avatar name={p.name} src={p.avatarUrl} size="sm" />
+                    {p.name}
                     {on && <span aria-hidden>✓</span>}
                   </button>
                 );
@@ -256,7 +290,7 @@ export default function NewEventForm({ profiles }: { profiles: Profile[] }) {
         </Card>
 
         {error && <ErrorText>{error}</ErrorText>}
-        <Button type="submit" size="lg" full disabled={loading}>
+        <Button type="submit" size="lg" full disabled={loading || coverBusy}>
           {loading ? "Creating…" : `Send it ${emoji}`}
         </Button>
       </form>

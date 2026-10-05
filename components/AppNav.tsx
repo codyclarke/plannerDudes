@@ -6,7 +6,7 @@ import { buttonClasses, cn } from "@/components/ui";
 
 const TABS = [
   { href: "/dashboard", label: "Events", icon: "🏠" },
-  { href: "/invite", label: "Friends", icon: "👯" },
+  { href: "/invite", label: "Friends", icon: "🍻" },
 ];
 
 function isActive(pathname: string, href: string) {

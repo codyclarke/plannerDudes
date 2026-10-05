@@ -5,11 +5,14 @@ import { sendEventCreatedEmail } from "@/lib/email";
 import { sendPushToProfiles } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { allDayStartsAt } from "@/lib/format";
+import { EVENT_IMAGES_BUCKET, isOwnImagePath } from "@/lib/images";
+import { deleteImage } from "@/lib/images.server";
 
-// Deletes a partially created event (options/invitees cascade). Uses the
-// admin client because RLS has no delete policy on events.
-async function rollback(eventId: string) {
+// Deletes a partially created event (options/invitees cascade) and its
+// uploaded cover. Uses the admin client because RLS has no delete policy on events.
+async function rollback(eventId: string, imagePath: string | null) {
   await createAdminClient().from("events").delete().eq("id", eventId);
+  await deleteImage(EVENT_IMAGES_BUCKET, imagePath);
 }
 
 export async function POST(request: Request) {
@@ -34,6 +37,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const input = parsed.data;
+  if (input.imagePath && !isOwnImagePath(input.imagePath, profile.id)) {
+    return NextResponse.json({ error: "invalid image" }, { status: 400 });
+  }
+  const imagePath = input.imagePath ?? null;
 
   const { data: event, error: eventError } = await supabase
     .from("events")
@@ -44,12 +51,14 @@ export async function POST(request: Request) {
       description: input.description ?? null,
       location: input.location ?? null,
       emoji: input.emoji ?? null,
+      image_path: imagePath,
       spouses_invited: input.spousesInvited,
       kids_allowed: input.kidsAllowed,
     })
     .select()
     .single();
   if (eventError || !event) {
+    await deleteImage(EVENT_IMAGES_BUCKET, imagePath);
     return NextResponse.json({ error: eventError?.message ?? "failed to create event" }, { status: 500 });
   }
 
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
     }))
   );
   if (optionsError) {
-    await rollback(event.id);
+    await rollback(event.id, imagePath);
     return NextResponse.json({ error: optionsError.message }, { status: 500 });
   }
 
@@ -73,7 +82,7 @@ export async function POST(request: Request) {
       .from("event_invitees")
       .insert(inviteeIds.map((profileId) => ({ event_id: event.id, profile_id: profileId })));
     if (inviteesError) {
-      await rollback(event.id);
+      await rollback(event.id, imagePath);
       return NextResponse.json({ error: inviteesError.message }, { status: 500 });
     }
   }

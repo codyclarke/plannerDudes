@@ -1,5 +1,8 @@
 import { allDayDateKey, dateKeyInAppZone } from "@/lib/format";
 import { eventEmoji } from "@/lib/emoji";
+import { signImages } from "@/lib/images.server";
+import { EVENT_IMAGES_BUCKET } from "@/lib/images";
+import { loadPeople } from "@/lib/people.server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 import DashboardView, { type DashboardEvent } from "./dashboard-view";
@@ -36,13 +39,11 @@ export default async function DashboardPage() {
   if (!auth.user) return null;
   const myId = auth.user.id;
 
-  const [{ data: events }, { data: profiles }] = await Promise.all([
+  const [{ data: events }, people] = await Promise.all([
     supabase.from("events").select("*").order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, display_name"),
+    loadPeople(supabase),
   ]);
-  const nameOf = (profileId: string) =>
-    profiles?.find((p) => p.id === profileId)?.display_name ?? "Someone";
-  const myName = nameOf(myId);
+  const myName = people.get(myId).name;
 
   if (!events || events.length === 0) {
     return <DashboardView name={myName} events={[]} />;
@@ -58,7 +59,11 @@ export default async function DashboardPage() {
     ? await supabase.from("votes").select("*").in("event_option_id", optionIds)
     : { data: [] };
 
-  const cards: DashboardEvent[] = pickUpcoming(events, options ?? []).map((event) => {
+  const upcoming = pickUpcoming(events, options ?? []);
+  // These rows came through RLS, so the viewer may see their covers.
+  const imageUrls = await signImages(EVENT_IMAGES_BUCKET, upcoming.map((e) => e.image_path));
+
+  const cards: DashboardEvent[] = upcoming.map((event) => {
     const eventOptions = (options ?? []).filter((o) => o.event_id === event.id);
     const eventOptionIds = new Set(eventOptions.map((o) => o.id));
     const eventVotes = (votes ?? []).filter((v) => eventOptionIds.has(v.event_option_id));
@@ -76,13 +81,14 @@ export default async function DashboardPage() {
       id: event.id,
       title: event.title,
       emoji: eventEmoji(event.title, event.emoji),
+      imageUrl: event.image_path ? (imageUrls.get(event.image_path) ?? null) : null,
       location: event.location,
       spousesInvited: event.spouses_invited,
       kidsAllowed: event.kids_allowed,
       status: event.status === "finalized" ? "finalized" : "polling",
       when: finalizedOption ? { iso: finalizedOption.starts_at, allDay: finalizedOption.all_day } : null,
       optionCount: eventOptions.length,
-      goingNames: going.map((v) => nameOf(v.profile_id)),
+      going: going.map((v) => people.get(v.profile_id)),
       goingExtra: going.reduce((n, v) => n + v.adults_count + v.kids_count, 0),
       votedCount: voters.size,
       participantCount: participants.size,

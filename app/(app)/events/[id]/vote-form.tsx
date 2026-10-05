@@ -107,7 +107,7 @@ export default function VoteForm({
                 </div>
                 {o.label && <p className="text-sm text-muted">{time}</p>}
                 <div className="mt-1 flex items-center gap-2">
-                  <AvatarStack names={o.yesNames} />
+                  <AvatarStack people={o.yesPeople} />
                   <span className="text-xs font-bold whitespace-nowrap text-muted">
                     {o.yes} yes · {o.maybe} maybe
                     {o.totalAttendees > 0 && ` · 👥 ${o.totalAttendees}`}
