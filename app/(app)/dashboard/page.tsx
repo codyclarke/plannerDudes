@@ -5,7 +5,11 @@ import { EVENT_IMAGES_BUCKET } from "@/lib/images";
 import { loadPeople } from "@/lib/people.server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
+import { describeDeadline } from "@/lib/voting-deadline";
 import DashboardView, { type DashboardEvent } from "./dashboard-view";
+
+// Reads the clock, so it lives outside the component (render must stay pure).
+const deadlineOf = (closesAt: string | null) => describeDeadline(closesAt, new Date());
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type OptionRow = Database["public"]["Tables"]["event_options"]["Row"];
@@ -91,6 +95,7 @@ export default async function DashboardPage() {
       // Every event is open to the whole group.
       participantCount: people.list.length,
       iVoted: voters.has(myId),
+      deadline: event.status === "polling" ? deadlineOf(event.voting_closes_at) : null,
     };
   });
 

@@ -8,6 +8,15 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+export type NotificationType =
+  | "created"
+  | "finalized"
+  | "reminder"
+  | "nudge_3d"
+  | "nudge_1d"
+  | "nudge_today"
+  | "voting_closed";
+
 export interface Database {
   public: {
     Tables: {
@@ -83,6 +92,7 @@ export interface Database {
           kids_allowed: boolean;
           status: "polling" | "finalized" | "cancelled";
           finalized_option_id: string | null;
+          voting_closes_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -98,6 +108,7 @@ export interface Database {
           kids_allowed?: boolean;
           status?: "polling" | "finalized" | "cancelled";
           finalized_option_id?: string | null;
+          voting_closes_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
@@ -173,13 +184,13 @@ export interface Database {
         Row: {
           id: string;
           event_id: string;
-          type: "created" | "finalized" | "reminder";
+          type: NotificationType;
           sent_at: string;
         };
         Insert: {
           id?: string;
           event_id: string;
-          type: "created" | "finalized" | "reminder";
+          type: NotificationType;
           sent_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["notifications_log"]["Insert"]>;

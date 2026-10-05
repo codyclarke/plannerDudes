@@ -42,6 +42,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid image" }, { status: 400 });
   }
   const imagePath = input.imagePath ?? null;
+  if (input.votingClosesAt && new Date(input.votingClosesAt) <= new Date()) {
+    return NextResponse.json({ error: "The voting closing date has to be in the future." }, { status: 400 });
+  }
 
   const { data: event, error: eventError } = await supabase
     .from("events")
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
       image_path: imagePath,
       spouses_invited: input.spousesInvited,
       kids_allowed: input.kidsAllowed,
+      voting_closes_at: input.votingClosesAt ?? null,
     })
     .select()
     .single();

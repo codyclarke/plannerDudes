@@ -15,12 +15,15 @@ export default function VoteForm({
   topOptionId,
   spousesInvited,
   kidsAllowed,
+  closed = false,
 }: {
   eventId: string;
   options: OptionView[];
   topOptionId: string | null;
   spousesInvited: boolean;
   kidsAllowed: boolean;
+  /** Voting deadline has passed: answers are shown read-only. */
+  closed?: boolean;
 }) {
   const router = useRouter();
   // Unanswered options start as null (nothing selected) and are not
@@ -99,16 +102,23 @@ export default function VoteForm({
             </div>
 
             <div className="mt-3">
-              <ResponseButtons value={a.response} onChange={(response) => update(o.id, { response })} labels={LABELS} />
-            </div>
-            <div className="mt-3 empty:hidden">
-              <HeadcountSteppers
-                answer={a}
-                onChange={(patch) => update(o.id, patch)}
-                spousesInvited={spousesInvited}
-                kidsAllowed={kidsAllowed}
+              <ResponseButtons
+                value={a.response}
+                onChange={(response) => update(o.id, { response })}
+                labels={LABELS}
+                disabled={closed}
               />
             </div>
+            {!closed && (
+              <div className="mt-3 empty:hidden">
+                <HeadcountSteppers
+                  answer={a}
+                  onChange={(patch) => update(o.id, patch)}
+                  spousesInvited={spousesInvited}
+                  kidsAllowed={kidsAllowed}
+                />
+              </div>
+            )}
           </div>
         );
       })}
@@ -116,11 +126,13 @@ export default function VoteForm({
       {error && <ErrorText>{error}</ErrorText>}
       {/* Sticky so the save button stays reachable above the phone tab bar;
           the fade keeps cards scrolling underneath from clashing with it. */}
-      <div className="sticky bottom-24 z-10 -mx-4 bg-linear-to-t from-background via-background/90 to-transparent px-4 pt-6 pb-2 md:bottom-0 md:pb-4">
-        <Button type="submit" size="lg" full disabled={status === "saving"}>
-          {status === "saving" ? "Saving…" : status === "saved" ? "✅ Vote saved!" : "Save my vote"}
-        </Button>
-      </div>
+      {!closed && (
+        <div className="sticky bottom-24 z-10 -mx-4 bg-linear-to-t from-background via-background/90 to-transparent px-4 pt-6 pb-2 md:bottom-0 md:pb-4">
+          <Button type="submit" size="lg" full disabled={status === "saving"}>
+            {status === "saving" ? "Saving…" : status === "saved" ? "✅ Vote saved!" : "Save my vote"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

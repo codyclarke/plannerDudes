@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EMOJI_CHOICES, eventEmoji } from "@/lib/emoji";
+import { endOfDayIso } from "@/lib/voting-deadline";
 import { COVER_IMAGE, discardImage, uploadImage } from "@/lib/upload-image";
 import { EVENT_IMAGES_BUCKET } from "@/lib/images";
 import { Button, Card, ErrorText, Field, PageTitle, cn, inputClasses } from "@/components/ui";
@@ -24,6 +25,8 @@ export default function NewEventForm() {
   const [kidsAllowed, setKidsAllowed] = useState(false);
   // Each candidate is a date plus an optional time; no time = all-day option.
   const [options, setOptions] = useState<CandidateInput[]>([EMPTY_OPTION, EMPTY_OPTION]);
+  // Optional "YYYY-MM-DD"; voting closes at the end of that day.
+  const [closesOn, setClosesOn] = useState("");
   const [cover, setCover] = useState<{ path: string; previewUrl: string } | null>(null);
   const [coverBusy, setCoverBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +76,18 @@ export default function NewEventForm() {
       setError("Add at least 2 dates so people have something to vote on.");
       return;
     }
+    if (closesOn) {
+      const todayKey = new Date().toLocaleDateString("en-CA"); // local "YYYY-MM-DD"
+      const firstDate = filledOptions.map((o) => o.date).sort()[0];
+      if (closesOn < todayKey) {
+        setError("The voting closing date can't be in the past.");
+        return;
+      }
+      if (closesOn > firstDate) {
+        setError("Voting should close on or before the first proposed date.");
+        return;
+      }
+    }
 
     setLoading(true);
     const res = await fetch("/api/events", {
@@ -86,6 +101,7 @@ export default function NewEventForm() {
         location: location || undefined,
         spousesInvited,
         kidsAllowed,
+        votingClosesAt: closesOn ? endOfDayIso(closesOn) : undefined,
         // Date/time inputs carry no timezone; timed options are converted
         // here, in the browser's zone, so the server stores the instant the
         // user meant. All-day options send just the date.
@@ -234,6 +250,32 @@ export default function NewEventForm() {
               + Add another date
             </button>
           )}
+
+          <div className="mt-5 border-t border-line pt-4">
+            <Field
+              label="⏳ Voting closes (optional)"
+              hint="Anyone who hasn't voted gets a push nudge 3 days before, the day before, and the morning it closes."
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={closesOn}
+                  onChange={(e) => setClosesOn(e.target.value)}
+                  className={cn(inputClasses, "min-w-0 flex-1 px-3")}
+                />
+                {closesOn && (
+                  <button
+                    type="button"
+                    aria-label="Remove closing date"
+                    onClick={() => setClosesOn("")}
+                    className="grid size-8 shrink-0 place-items-center rounded-full text-muted transition hover:bg-rose-500/10 hover:text-rose-500"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </Field>
+          </div>
         </Card>
 
         {error && <ErrorText>{error}</ErrorText>}

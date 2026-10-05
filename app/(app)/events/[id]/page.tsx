@@ -3,7 +3,17 @@ import { eventEmoji } from "@/lib/emoji";
 import { signImages } from "@/lib/images.server";
 import { EVENT_IMAGES_BUCKET } from "@/lib/images";
 import { loadPeople } from "@/lib/people.server";
+import { dateKeyInAppZone } from "@/lib/format";
+import { describeDeadline } from "@/lib/voting-deadline";
 import EventView, { EventNotFound, type OptionView } from "./event-view";
+
+// Reads the clock, so it lives outside the component (render must stay pure).
+function deadlineProps(closesAt: string | null) {
+  return {
+    deadline: describeDeadline(closesAt, new Date()),
+    closesOnDate: closesAt ? dateKeyInAppZone(new Date(closesAt)) : null,
+  };
+}
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: eventId } = await params;
@@ -82,6 +92,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       finalizedOptionId={event.finalized_option_id}
       topOptionId={topOptionId}
       going={going}
+      {...deadlineProps(event.voting_closes_at)}
     />
   );
 }

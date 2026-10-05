@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Person } from "@/lib/people";
+import type { Deadline } from "@/lib/voting-deadline";
 import { formatWhen } from "@/lib/format";
 import { AvatarStack, Chip, EmptyState, SectionTitle, buttonClasses, cn, eventTheme } from "@/components/ui";
 
@@ -19,13 +20,16 @@ export type DashboardEvent = {
   votedCount: number;
   participantCount: number;
   iVoted: boolean;
+  /** Voting countdown for events still being voted on. */
+  deadline: Deadline | null;
 };
 
 export default function DashboardView({ name, events }: { name: string; events: DashboardEvent[] }) {
   const firstName = name.split(/\s+/)[0];
   const locked = events.filter((e) => e.status === "finalized");
   const voting = events.filter((e) => e.status === "polling");
-  const needsVote = voting.filter((e) => !e.iVoted).length;
+  // Only count events you can still vote on.
+  const needsVote = voting.filter((e) => !e.iVoted && !e.deadline?.closed).length;
 
   return (
     <div className="flex flex-col gap-8">
@@ -145,12 +149,17 @@ function EventCard({ event: e }: { event: DashboardEvent }) {
               ) : (
                 <span className="text-xs font-bold text-muted">No one confirmed yet</span>
               )
+            ) : e.deadline?.closed ? (
+              <Chip tone="neutral">🔒 Voting closed</Chip>
             ) : e.iVoted ? (
               <Chip tone="emerald">✅ You voted</Chip>
             ) : (
               <span className="rounded-full bg-linear-to-r from-violet-600 to-fuchsia-500 px-3 py-1 text-xs font-extrabold text-white shadow-sm">
                 🗳️ Vote now
               </span>
+            )}
+            {e.deadline && !e.deadline.closed && (
+              <Chip tone={e.deadline.urgent ? "rose" : "neutral"}>⏳ {e.deadline.short}</Chip>
             )}
             {e.spousesInvited && <Chip tone="violet">💑 Partners</Chip>}
             {e.kidsAllowed && <Chip tone="sky">🧒 Kids</Chip>}

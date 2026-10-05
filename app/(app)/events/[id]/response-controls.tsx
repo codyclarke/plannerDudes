@@ -15,10 +15,12 @@ export function ResponseButtons({
   value,
   onChange,
   labels,
+  disabled = false,
 }: {
   value: Response | null;
   onChange: (response: Response) => void;
   labels: Record<Response, string>;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -27,9 +29,10 @@ export function ResponseButtons({
           key={r}
           type="button"
           aria-pressed={value === r}
+          disabled={disabled}
           onClick={() => onChange(r)}
           className={cn(
-            "rounded-2xl py-2.5 text-sm font-extrabold transition active:scale-95",
+            "rounded-2xl py-2.5 text-sm font-extrabold transition active:scale-95 disabled:pointer-events-none disabled:opacity-60",
             value === r ? CHOICE_STYLES[r] : "bg-surface-2 text-muted hover:text-foreground"
           )}
         >

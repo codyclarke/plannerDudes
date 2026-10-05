@@ -33,7 +33,12 @@ export const createEventSchema = z.object({
   imagePath: z.string().max(200).optional(), // ownership checked in the route
   spousesInvited: z.boolean(),
   kidsAllowed: z.boolean(),
+  votingClosesAt: z.iso.datetime().optional(), // end of the chosen day, converted client-side
   options: z.array(eventOptionInput).min(2).max(5),
+});
+
+export const updateVotingCloseSchema = z.object({
+  votingClosesAt: z.iso.datetime().nullable(), // null removes the deadline
 });
 
 export const voteSchema = z.object({

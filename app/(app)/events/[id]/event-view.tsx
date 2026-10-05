@@ -6,6 +6,8 @@ import VoteForm from "./vote-form";
 import FinalizeControl from "./finalize-control";
 import CoverEditor from "./cover-editor";
 import RsvpForm from "./rsvp-form";
+import DeadlineBanner from "./deadline-banner";
+import type { Deadline } from "@/lib/voting-deadline";
 
 export type OptionView = {
   id: string;
@@ -41,6 +43,10 @@ export type EventViewProps = {
   finalizedOptionId: string | null;
   topOptionId: string | null;
   going: (Person & { adults: number; kids: number })[];
+  /** Voting countdown, or null when the event has no deadline. */
+  deadline: Deadline | null;
+  /** Closing day "YYYY-MM-DD" in the group's timezone, for the organizer's editor. */
+  closesOnDate: string | null;
 };
 
 export default function EventView({
@@ -50,6 +56,8 @@ export default function EventView({
   finalizedOptionId,
   topOptionId,
   going,
+  deadline,
+  closesOnDate,
 }: EventViewProps) {
   const theme = eventTheme(event.id);
   const finalized = options.find((o) => o.id === finalizedOptionId);
@@ -123,12 +131,21 @@ export default function EventView({
         <>
           <section>
             <SectionTitle>When works for you?</SectionTitle>
+            <div className="mb-3">
+              <DeadlineBanner
+                eventId={event.id}
+                deadline={deadline}
+                closesOnDate={closesOnDate}
+                isOrganizer={isOrganizer}
+              />
+            </div>
             <VoteForm
               eventId={event.id}
               options={options}
               topOptionId={topOptionId}
               spousesInvited={event.spousesInvited}
               kidsAllowed={event.kidsAllowed}
+              closed={!!deadline?.closed}
             />
           </section>
           {isOrganizer && options.length > 0 && (

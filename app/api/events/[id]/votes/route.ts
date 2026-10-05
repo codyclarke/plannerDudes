@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { voteBatchSchema } from "@/lib/validations";
+import { isVotingClosed } from "@/lib/voting-deadline";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: eventId } = await ctx.params;
@@ -18,17 +19,24 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const { data: event } = await supabase
     .from("events")
-    .select("status, finalized_option_id")
+    .select("status, finalized_option_id, voting_closes_at")
     .eq("id", eventId)
     .single();
   if (!event) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  // While polling, any of the event's dates can be voted on. Once a date is
-  // locked in, RSVPs stay open for that date only (mirrors the votes RLS policy).
+  // While polling (and before any closing date), any of the event's dates can
+  // be voted on. Once a date is locked in, RSVPs stay open for that date only.
+  // Mirrors the votes RLS policy.
   let allowedOptionIds: Set<string>;
   if (event.status === "polling") {
+    if (isVotingClosed(event.voting_closes_at, new Date())) {
+      return NextResponse.json(
+        { error: "Voting has closed — the organizer is picking the date." },
+        { status: 409 }
+      );
+    }
     const { data: options } = await supabase
       .from("event_options")
       .select("id")
