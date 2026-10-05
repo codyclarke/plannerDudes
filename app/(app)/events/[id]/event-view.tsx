@@ -7,6 +7,7 @@ import FinalizeControl from "./finalize-control";
 import CoverEditor from "./cover-editor";
 import RsvpForm from "./rsvp-form";
 import DeadlineBanner from "./deadline-banner";
+import ChangeDate from "./change-date";
 import type { Deadline } from "@/lib/voting-deadline";
 
 export type OptionView = {
@@ -36,6 +37,8 @@ export type EventViewProps = {
     kidsAllowed: boolean;
     status: "polling" | "finalized" | "cancelled";
     organizerName: string;
+    /** Date was set up front (no vote): created locked in. */
+    fixedDate: boolean;
     imageUrl: string | null;
   };
   isOrganizer: boolean;
@@ -98,7 +101,7 @@ export default function EventView({
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {event.status === "finalized" ? (
-              <Chip tone="emerald">🔒 Locked in</Chip>
+              <Chip tone="emerald">{event.fixedDate ? "📅 Set date" : "🔒 Locked in"}</Chip>
             ) : (
               <Chip tone="amber">🗳️ Voting open</Chip>
             )}
@@ -126,6 +129,7 @@ export default function EventView({
           going={going}
           spousesInvited={event.spousesInvited}
           kidsAllowed={event.kidsAllowed}
+          canChangeDate={isOrganizer && event.fixedDate}
         />
       ) : (
         <>
@@ -163,12 +167,15 @@ function LockedIn({
   going,
   spousesInvited,
   kidsAllowed,
+  canChangeDate,
 }: {
   eventId: string;
   option: OptionView;
   going: EventViewProps["going"];
   spousesInvited: boolean;
   kidsAllowed: boolean;
+  /** Organizer of a set-date event can move it. */
+  canChangeDate: boolean;
 }) {
   const headcount = going.reduce((n, g) => n + 1 + g.adults + g.kids, 0);
   return (
@@ -182,6 +189,11 @@ function LockedIn({
             {option.label && <p className="text-sm text-muted">{option.label}</p>}
           </div>
         </div>
+        {canChangeDate && (
+          <div className="mt-3">
+            <ChangeDate eventId={eventId} startsAt={option.startsAt} allDay={option.allDay} />
+          </div>
+        )}
         {/* Plain <a>: next/link would prefetch/route-transition a file download. */}
         <a
           href={`/api/events/${eventId}/ics`}

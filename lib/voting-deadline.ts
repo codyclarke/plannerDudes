@@ -1,7 +1,7 @@
 // Voting deadline rules, shared by the UI (countdowns), the votes route
 // (enforcement) and the daily cron job (nudges). Pure functions: callers
 // pass `now` in.
-import { APP_TIMEZONE, dateKeyInAppZone } from "./format";
+import { APP_TIMEZONE, allDayDateKey, dateKeyInAppZone } from "./format";
 
 export type NudgeStage = "nudge_3d" | "nudge_1d" | "nudge_today";
 
@@ -28,6 +28,26 @@ export function nudgeStage(closesAt: string, now: Date): NudgeStage | null {
   const days = calendarDaysUntil(closesAt, now);
   return days === 3 ? "nudge_3d" : days === 1 ? "nudge_1d" : days === 0 ? "nudge_today" : null;
 }
+
+export type RsvpNudgeStage = "rsvp_3d" | "rsvp_1d";
+
+/**
+ * Which "you haven't RSVP'd" nudge is due today for a set-date event, if any:
+ * 3 days before and the day before. All-day dates are compared by their
+ * calendar date (they're stored at 12:00 UTC; see allDayDateKey).
+ */
+export function rsvpNudgeStage(startsAt: string, allDay: boolean, now: Date): RsvpNudgeStage | null {
+  const eventKey = allDay ? allDayDateKey(startsAt) : dateKeyInAppZone(new Date(startsAt));
+  const days = Math.round(
+    (Date.parse(`${eventKey}T00:00:00Z`) - Date.parse(`${dateKeyInAppZone(now)}T00:00:00Z`)) / DAY_MS
+  );
+  return days === 3 ? "rsvp_3d" : days === 1 ? "rsvp_1d" : null;
+}
+
+export const RSVP_NUDGE_COPY: Record<RsvpNudgeStage, string> = {
+  rsvp_3d: "It's in 3 days — let everyone know if you're coming.",
+  rsvp_1d: "It's tomorrow! Are you coming?",
+};
 
 export const NUDGE_COPY: Record<NudgeStage, string> = {
   nudge_3d: "Voting closes in 3 days — pick the dates that work for you.",

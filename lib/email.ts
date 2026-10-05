@@ -75,12 +75,32 @@ export function sendEventCreatedEmail(opts: {
   organizerName: string;
   title: string;
   eventUrl: string;
+  /** Set for set-date events (no vote, just an RSVP). */
+  whenText?: string;
 }) {
   return send({
     to: opts.to,
     subject: `New event: ${opts.title}`,
-    html: `<p>${esc(opts.organizerName)} proposed a new event: <strong>${esc(opts.title)}</strong>.</p>
-           <p><a href="${esc(opts.eventUrl)}">Vote on a time</a></p>`,
+    html: opts.whenText
+      ? `<p>${esc(opts.organizerName)} is planning <strong>${esc(opts.title)}</strong> on ${esc(opts.whenText)}.</p>
+         <p><a href="${esc(opts.eventUrl)}">Let them know if you're coming</a></p>`
+      : `<p>${esc(opts.organizerName)} proposed a new event: <strong>${esc(opts.title)}</strong>.</p>
+         <p><a href="${esc(opts.eventUrl)}">Vote on a time</a></p>`,
+  });
+}
+
+export function sendEventDateChangedEmail(opts: {
+  to: string[];
+  organizerName: string;
+  title: string;
+  whenText: string;
+  eventUrl: string;
+}) {
+  return send({
+    to: opts.to,
+    subject: `New date: ${opts.title}`,
+    html: `<p>${esc(opts.organizerName)} moved <strong>${esc(opts.title)}</strong> to ${esc(opts.whenText)}.</p>
+           <p>Your RSVP carried over — <a href="${esc(opts.eventUrl)}">update it if your plans changed</a>, and re-add it to your calendar.</p>`,
   });
 }
 

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { NotificationType } from "@/lib/supabase/types";
 import { sendEventReminderEmail } from "@/lib/email";
 import { sendPushToProfiles } from "@/lib/push";
-import { NUDGE_COPY, isVotingClosed, nudgeStage } from "@/lib/voting-deadline";
+import { NUDGE_COPY, RSVP_NUDGE_COPY, isVotingClosed, nudgeStage, rsvpNudgeStage } from "@/lib/voting-deadline";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -14,6 +14,7 @@ type Admin = ReturnType<typeof createAdminClient>;
 //  1. day-before reminders for locked-in events
 //  2. "you haven't voted" nudges as a voting deadline approaches
 //  3. a heads-up to organizers whose voting has closed
+//  4. "are you coming?" nudges before set-date events
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
   // An unset secret must not turn into the accepted header "Bearer undefined".
@@ -28,8 +29,9 @@ export async function GET(request: Request) {
 
   const reminders = await sendEventReminders(admin, base, now);
   const { nudges, closedNotices } = await sendVotingNotifications(admin, base, now);
+  const rsvpNudges = await sendRsvpNudges(admin, base, now);
 
-  return NextResponse.json({ ok: true, reminders, nudges, closedNotices });
+  return NextResponse.json({ ok: true, reminders, nudges, closedNotices, rsvpNudges });
 }
 
 /**
@@ -141,4 +143,43 @@ async function sendVotingNotifications(admin: Admin, base: string, now: Date) {
     nudges += notVoted.length;
   }
   return { nudges, closedNotices };
+}
+
+async function sendRsvpNudges(admin: Admin, base: string, now: Date) {
+  const { data: events } = await admin
+    .from("events")
+    .select("id, title, group_id, finalized_option_id")
+    .eq("status", "finalized")
+    .eq("fixed_date", true)
+    .not("finalized_option_id", "is", null);
+
+  let sent = 0;
+  for (const event of events ?? []) {
+    const { data: option } = await admin
+      .from("event_options")
+      .select("id, starts_at, all_day")
+      .eq("id", event.finalized_option_id!)
+      .single();
+    if (!option) continue;
+
+    const stage = rsvpNudgeStage(option.starts_at, option.all_day, now);
+    if (!stage || !(await claim(admin, event.id, stage))) continue;
+
+    // Everyone in the group who hasn't answered (yes, maybe or no) yet.
+    const [{ data: members }, { data: answers }] = await Promise.all([
+      admin.from("profiles").select("id").eq("group_id", event.group_id),
+      admin.from("votes").select("profile_id").eq("event_option_id", option.id),
+    ]);
+    const answered = new Set((answers ?? []).map((a) => a.profile_id));
+    const unanswered = (members ?? []).map((m) => m.id).filter((id) => !answered.has(id));
+    if (unanswered.length === 0) continue;
+
+    await sendPushToProfiles(unanswered, {
+      title: `📅 ${event.title}`,
+      body: RSVP_NUDGE_COPY[stage],
+      url: `${base}/events/${event.id}`,
+    });
+    sent += unanswered.length;
+  }
+  return sent;
 }

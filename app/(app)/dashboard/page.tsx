@@ -95,6 +95,9 @@ export default async function DashboardPage() {
       // Every event is open to the whole group.
       participantCount: people.list.length,
       iVoted: voters.has(myId),
+      needsRsvp:
+        !!finalizedOption &&
+        !eventVotes.some((v) => v.event_option_id === finalizedOption.id && v.profile_id === myId),
       deadline: event.status === "polling" ? deadlineOf(event.voting_closes_at) : null,
     };
   });

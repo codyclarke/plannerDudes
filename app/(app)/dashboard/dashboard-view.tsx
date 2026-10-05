@@ -20,6 +20,8 @@ export type DashboardEvent = {
   votedCount: number;
   participantCount: number;
   iVoted: boolean;
+  /** Locked-in event you haven't RSVP'd to yet. */
+  needsRsvp: boolean;
   /** Voting countdown for events still being voted on. */
   deadline: Deadline | null;
 };
@@ -30,6 +32,7 @@ export default function DashboardView({ name, events }: { name: string; events: 
   const voting = events.filter((e) => e.status === "polling");
   // Only count events you can still vote on.
   const needsVote = voting.filter((e) => !e.iVoted && !e.deadline?.closed).length;
+  const needsRsvp = locked.filter((e) => e.needsRsvp).length;
 
   return (
     <div className="flex flex-col gap-8">
@@ -43,7 +46,7 @@ export default function DashboardView({ name, events }: { name: string; events: 
             ? "Nothing on the calendar yet."
             : `You've got ${events.length} ${events.length === 1 ? "plan" : "plans"} in the works.`}
         </p>
-        {(locked.length > 0 || needsVote > 0) && (
+        {(locked.length > 0 || needsVote > 0 || needsRsvp > 0) && (
           <div className="mt-4 flex flex-wrap gap-2">
             {locked.length > 0 && (
               <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-bold backdrop-blur">
@@ -53,6 +56,11 @@ export default function DashboardView({ name, events }: { name: string; events: 
             {needsVote > 0 && (
               <span className="rounded-full bg-white px-3 py-1 text-sm font-extrabold text-fuchsia-600">
                 🗳️ {needsVote} {needsVote === 1 ? "needs" : "need"} your vote
+              </span>
+            )}
+            {needsRsvp > 0 && (
+              <span className="rounded-full bg-white px-3 py-1 text-sm font-extrabold text-fuchsia-600">
+                📝 {needsRsvp} {needsRsvp === 1 ? "needs" : "need"} your RSVP
               </span>
             )}
           </div>
@@ -156,6 +164,11 @@ function EventCard({ event: e }: { event: DashboardEvent }) {
             ) : (
               <span className="rounded-full bg-linear-to-r from-violet-600 to-fuchsia-500 px-3 py-1 text-xs font-extrabold text-white shadow-sm">
                 🗳️ Vote now
+              </span>
+            )}
+            {e.needsRsvp && (
+              <span className="rounded-full bg-linear-to-r from-violet-600 to-fuchsia-500 px-3 py-1 text-xs font-extrabold text-white shadow-sm">
+                📝 RSVP
               </span>
             )}
             {e.deadline && !e.deadline.closed && (

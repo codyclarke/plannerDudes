@@ -10,7 +10,7 @@ const KEYWORDS: [RegExp, string][] = [
   [/beer|brew|drinks?|bar\b|pub|happy hour/i, "🍻"],
   [/wine|vineyard/i, "🍷"],
   [/coffee|brunch|breakfast/i, "☕"],
-  [/birthday|bday/i, "🎂"],
+  [/birthday|bday|\b\d{1,3}(st|nd|rd|th)\b/i, "🎂"], // also "Sam's 30th"
   [/board ?game|game night|poker|cards/i, "🎲"],
   [/video ?game|gaming|lan/i, "🎮"],
   [/movie|film|cinema/i, "🎬"],

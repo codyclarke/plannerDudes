@@ -5,7 +5,7 @@ import { createEventSchema } from "@/lib/validations";
 import { sendEventCreatedEmail } from "@/lib/email";
 import { sendPushToProfiles } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { allDayStartsAt } from "@/lib/format";
+import { allDayStartsAt, formatWhen } from "@/lib/format";
 import { EVENT_IMAGES_BUCKET, isOwnImagePath } from "@/lib/images";
 import { deleteImage } from "@/lib/images.server";
 
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid image" }, { status: 400 });
   }
   const imagePath = input.imagePath ?? null;
+  const fixed = input.fixedDate;
   if (input.votingClosesAt && new Date(input.votingClosesAt) <= new Date()) {
     return NextResponse.json({ error: "The voting closing date has to be in the future." }, { status: 400 });
   }
@@ -58,7 +59,10 @@ export async function POST(request: Request) {
       image_path: imagePath,
       spouses_invited: input.spousesInvited,
       kids_allowed: input.kidsAllowed,
-      voting_closes_at: input.votingClosesAt ?? null,
+      voting_closes_at: fixed ? null : (input.votingClosesAt ?? null),
+      // A set-date event starts out locked in (its one date is attached below).
+      fixed_date: fixed,
+      status: fixed ? "finalized" : "polling",
     })
     .select()
     .single();
@@ -67,18 +71,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: eventError?.message ?? "failed to create event" }, { status: 500 });
   }
 
-  const { error: optionsError } = await supabase.from("event_options").insert(
-    input.options.map((opt, i) => ({
-      event_id: event.id,
-      starts_at: opt.allDay ? allDayStartsAt(opt.date) : opt.startsAt,
-      all_day: opt.allDay,
-      label: opt.label ?? null,
-      sort_order: i,
-    }))
-  );
-  if (optionsError) {
+  const { data: createdOptions, error: optionsError } = await supabase
+    .from("event_options")
+    .insert(
+      input.options.map((opt, i) => ({
+        event_id: event.id,
+        starts_at: opt.allDay ? allDayStartsAt(opt.date) : opt.startsAt,
+        all_day: opt.allDay,
+        label: opt.label ?? null,
+        sort_order: i,
+      }))
+    )
+    .select("id, starts_at, all_day");
+  if (optionsError || !createdOptions?.length) {
     await rollback(event.id, imagePath);
-    return NextResponse.json({ error: optionsError.message }, { status: 500 });
+    return NextResponse.json({ error: optionsError?.message ?? "failed to save dates" }, { status: 500 });
+  }
+
+  // Set-date event: lock in its one date and RSVP the organizer as going.
+  const theDate = createdOptions[0];
+  if (fixed) {
+    const { error: lockError } = await supabase
+      .from("events")
+      .update({ finalized_option_id: theDate.id })
+      .eq("id", event.id);
+    const { error: rsvpError } = lockError
+      ? { error: lockError }
+      : await supabase
+          .from("votes")
+          .insert({ event_option_id: theDate.id, profile_id: profile.id, response: "yes" });
+    if (rsvpError) {
+      await rollback(event.id, imagePath);
+      return NextResponse.json({ error: rsvpError.message }, { status: 500 });
+    }
   }
 
   // Every event is open to the whole group, so tell everyone except the organizer.
@@ -89,15 +114,19 @@ export async function POST(request: Request) {
     .neq("id", profile.id);
 
   const eventUrl = `${siteUrl(request)}/events/${event.id}`;
+  const whenText = fixed ? formatWhen(theDate.starts_at, theDate.all_day) : undefined;
   await sendEventCreatedEmail({
     to: (others ?? []).map((p) => p.email),
     organizerName: profile.display_name,
     title: event.title,
     eventUrl,
+    whenText,
   });
   await sendPushToProfiles((others ?? []).map((p) => p.id), {
     title: "New event",
-    body: `${profile.display_name} proposed "${event.title}" — vote on a time`,
+    body: whenText
+      ? `${profile.display_name} is planning "${event.title}" on ${whenText} — are you in?`
+      : `${profile.display_name} proposed "${event.title}" — vote on a time`,
     url: eventUrl,
   });
 

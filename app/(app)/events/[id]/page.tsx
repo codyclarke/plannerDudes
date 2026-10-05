@@ -85,6 +85,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         kidsAllowed: event.kids_allowed,
         status: event.status,
         organizerName: people.get(event.organizer_id).name,
+        fixedDate: event.fixed_date,
         imageUrl: event.image_path ? (imageUrls.get(event.image_path) ?? null) : null,
       }}
       isOrganizer={event.organizer_id === auth.user.id}

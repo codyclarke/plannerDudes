@@ -15,7 +15,9 @@ export type NotificationType =
   | "nudge_3d"
   | "nudge_1d"
   | "nudge_today"
-  | "voting_closed";
+  | "voting_closed"
+  | "rsvp_3d"
+  | "rsvp_1d";
 
 export interface Database {
   public: {
@@ -93,6 +95,7 @@ export interface Database {
           status: "polling" | "finalized" | "cancelled";
           finalized_option_id: string | null;
           voting_closes_at: string | null;
+          fixed_date: boolean;
           created_at: string;
         };
         Insert: {
@@ -109,6 +112,7 @@ export interface Database {
           status?: "polling" | "finalized" | "cancelled";
           finalized_option_id?: string | null;
           voting_closes_at?: string | null;
+          fixed_date?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;

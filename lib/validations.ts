@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Most candidate dates a poll can have (the create form uses this too). */
+export const MAX_DATE_OPTIONS = 8;
+
 export const signupSchema = z.object({
   token: z.string().min(1),
   displayName: z.string().trim().min(1).max(80),
@@ -25,17 +28,31 @@ export const eventOptionInput = z.union([
   }),
 ]);
 
-export const createEventSchema = z.object({
-  title: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(2000).optional(),
-  location: z.string().trim().max(200).optional(),
-  emoji: z.string().trim().min(1).max(16).optional(),
-  imagePath: z.string().max(200).optional(), // ownership checked in the route
-  spousesInvited: z.boolean(),
-  kidsAllowed: z.boolean(),
-  votingClosesAt: z.iso.datetime().optional(), // end of the chosen day, converted client-side
-  options: z.array(eventOptionInput).min(2).max(5),
-});
+export const createEventSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(2000).optional(),
+    location: z.string().trim().max(200).optional(),
+    emoji: z.string().trim().min(1).max(16).optional(),
+    imagePath: z.string().max(200).optional(), // ownership checked in the route
+    spousesInvited: z.boolean(),
+    kidsAllowed: z.boolean(),
+    // true = "set date" event: exactly one date, created already locked in.
+    fixedDate: z.boolean().default(false),
+    votingClosesAt: z.iso.datetime().optional(), // end of the chosen day, converted client-side
+    options: z.array(eventOptionInput).min(1).max(MAX_DATE_OPTIONS),
+  })
+  .refine((e) => (e.fixedDate ? e.options.length === 1 : e.options.length >= 2), {
+    message: "A set-date event has exactly one date; a vote needs at least two.",
+    path: ["options"],
+  })
+  .refine((e) => !(e.fixedDate && e.votingClosesAt), {
+    message: "Set-date events don't have a voting deadline.",
+    path: ["votingClosesAt"],
+  });
+
+/** Organizer moves a set-date event (same shape as one create option). */
+export const changeEventDateSchema = z.object({ date: eventOptionInput });
 
 export const updateVotingCloseSchema = z.object({
   votingClosesAt: z.iso.datetime().nullable(), // null removes the deadline
