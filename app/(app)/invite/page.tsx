@@ -11,7 +11,7 @@ export default async function FriendsPage() {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <PageTitle sub="Everyone here can see and vote on the events they're invited to.">
-        Your crew 👯
+        Your crew 🍻
       </PageTitle>
 
       <InviteForm />

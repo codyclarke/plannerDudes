@@ -15,7 +15,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Friend Events",
+  title: "Dude Planner",
   description: "Plan events and find a time that works for everyone",
   manifest: "/manifest.json",
   icons: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Friend Events",
+    title: "Dude Planner",
   },
 };
 
