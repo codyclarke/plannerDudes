@@ -8,6 +8,7 @@ import CoverEditor from "./cover-editor";
 import RsvpForm from "./rsvp-form";
 import DeadlineBanner from "./deadline-banner";
 import ChangeDate from "./change-date";
+import PlacesSection, { type PlaceView } from "./places-section";
 import type { Deadline } from "@/lib/voting-deadline";
 
 export type OptionView = {
@@ -50,6 +51,10 @@ export type EventViewProps = {
   deadline: Deadline | null;
   /** Closing day "YYYY-MM-DD" in the group's timezone, for the organizer's editor. */
   closesOnDate: string | null;
+  /** "Where should we stay?" links (empty = section hidden behind a button). */
+  places: PlaceView[];
+  chosenPlaceId: string | null;
+  topPlaceId: string | null;
 };
 
 export default function EventView({
@@ -61,7 +66,11 @@ export default function EventView({
   going,
   deadline,
   closesOnDate,
+  places,
+  chosenPlaceId,
+  topPlaceId,
 }: EventViewProps) {
+  const chosenPlace = places.find((p) => p.id === chosenPlaceId) ?? null;
   const theme = eventTheme(event.id);
   const finalized = options.find((o) => o.id === finalizedOptionId);
 
@@ -130,6 +139,7 @@ export default function EventView({
           spousesInvited={event.spousesInvited}
           kidsAllowed={event.kidsAllowed}
           canChangeDate={isOrganizer && event.fixedDate}
+          chosenPlace={chosenPlace}
         />
       ) : (
         <>
@@ -157,6 +167,14 @@ export default function EventView({
           )}
         </>
       )}
+
+      <PlacesSection
+        eventId={event.id}
+        places={places}
+        chosenPlaceId={chosenPlaceId}
+        topPlaceId={topPlaceId}
+        isOrganizer={isOrganizer}
+      />
     </div>
   );
 }
@@ -168,6 +186,7 @@ function LockedIn({
   spousesInvited,
   kidsAllowed,
   canChangeDate,
+  chosenPlace,
 }: {
   eventId: string;
   option: OptionView;
@@ -176,6 +195,7 @@ function LockedIn({
   kidsAllowed: boolean;
   /** Organizer of a set-date event can move it. */
   canChangeDate: boolean;
+  chosenPlace: PlaceView | null;
 }) {
   const headcount = going.reduce((n, g) => n + 1 + g.adults + g.kids, 0);
   return (
@@ -189,6 +209,17 @@ function LockedIn({
             {option.label && <p className="text-sm text-muted">{option.label}</p>}
           </div>
         </div>
+        {chosenPlace && (
+          <a
+            href={chosenPlace.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block font-semibold hover:underline"
+          >
+            📍 Staying at {chosenPlace.title ?? chosenPlace.siteName ?? "the picked place"}{" "}
+            <span className="text-muted">↗</span>
+          </a>
+        )}
         {canChangeDate && (
           <div className="mt-3">
             <ChangeDate eventId={eventId} startsAt={option.startsAt} allDay={option.allDay} />

@@ -6,6 +6,7 @@ import { loadPeople } from "@/lib/people.server";
 import { dateKeyInAppZone } from "@/lib/format";
 import { describeDeadline } from "@/lib/voting-deadline";
 import EventView, { EventNotFound, type OptionView } from "./event-view";
+import type { PlaceView } from "./places-section";
 
 // Reads the clock, so it lives outside the component (render must stay pure).
 function deadlineProps(closesAt: string | null) {
@@ -73,6 +74,40 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     .filter((v) => v.event_option_id === event.finalized_option_id && v.response === "yes")
     .map((v) => ({ ...people.get(v.profile_id), adults: v.adults_count, kids: v.kids_count }));
 
+  // "Where should we stay?" links and their votes.
+  const isOrganizer = event.organizer_id === auth.user.id;
+  const { data: places } = await supabase
+    .from("event_places")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("created_at");
+  const placeIds = (places ?? []).map((p) => p.id);
+  const { data: placeVotes } = placeIds.length
+    ? await supabase.from("place_votes").select("*").in("place_id", placeIds)
+    : { data: [] };
+  const placeViews: PlaceView[] = (places ?? []).map((p) => {
+    const votes = (placeVotes ?? []).filter((v) => v.place_id === p.id);
+    const yes = votes.filter((v) => v.response === "yes");
+    return {
+      id: p.id,
+      url: p.url,
+      title: p.title,
+      description: p.description,
+      imageUrl: p.image_url,
+      siteName: p.site_name,
+      addedBy: people.get(p.added_by).name,
+      canEdit: isOrganizer || p.added_by === auth.user!.id,
+      yes: yes.length,
+      maybe: votes.filter((v) => v.response === "maybe").length,
+      no: votes.filter((v) => v.response === "no").length,
+      yesPeople: yes.map((v) => people.get(v.profile_id)),
+      myResponse: votes.find((v) => v.profile_id === auth.user!.id)?.response ?? null,
+    };
+  });
+  // Top pick: most yeses, then most maybes (only once someone has voted).
+  const bestPlace = [...placeViews].sort((a, b) => b.yes - a.yes || b.maybe - a.maybe)[0];
+  const topPlaceId = bestPlace && bestPlace.yes + bestPlace.maybe > 0 ? bestPlace.id : null;
+
   return (
     <EventView
       event={{
@@ -88,12 +123,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         fixedDate: event.fixed_date,
         imageUrl: event.image_path ? (imageUrls.get(event.image_path) ?? null) : null,
       }}
-      isOrganizer={event.organizer_id === auth.user.id}
+      isOrganizer={isOrganizer}
       options={optionViews}
       finalizedOptionId={event.finalized_option_id}
       topOptionId={topOptionId}
       going={going}
       {...deadlineProps(event.voting_closes_at)}
+      places={placeViews}
+      chosenPlaceId={event.chosen_place_id}
+      topPlaceId={topPlaceId}
     />
   );
 }

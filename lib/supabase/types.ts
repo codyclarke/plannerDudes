@@ -96,6 +96,7 @@ export interface Database {
           finalized_option_id: string | null;
           voting_closes_at: string | null;
           fixed_date: boolean;
+          chosen_place_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -113,6 +114,7 @@ export interface Database {
           finalized_option_id?: string | null;
           voting_closes_at?: string | null;
           fixed_date?: boolean;
+          chosen_place_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
@@ -160,6 +162,48 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["votes"]["Insert"]>;
+        Relationships: never[];
+      };
+      event_places: {
+        Row: {
+          id: string;
+          event_id: string;
+          url: string;
+          title: string | null;
+          description: string | null;
+          image_url: string | null;
+          site_name: string | null;
+          added_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          url: string;
+          title?: string | null;
+          description?: string | null;
+          image_url?: string | null;
+          site_name?: string | null;
+          added_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_places"]["Insert"]>;
+        Relationships: never[];
+      };
+      place_votes: {
+        Row: {
+          place_id: string;
+          profile_id: string;
+          response: "yes" | "maybe" | "no";
+          updated_at: string;
+        };
+        Insert: {
+          place_id: string;
+          profile_id: string;
+          response: "yes" | "maybe" | "no";
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["place_votes"]["Insert"]>;
         Relationships: never[];
       };
       push_subscriptions: {

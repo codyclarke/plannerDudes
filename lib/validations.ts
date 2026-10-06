@@ -88,3 +88,24 @@ export const pushSubscribeSchema = z.object({
     auth: z.string().min(1),
   }),
 });
+
+// --- Places to stay -------------------------------------------------------
+
+/** Most links one paste can add. */
+export const MAX_LINKS_PER_PASTE = 10;
+
+export const addPlacesSchema = z.object({
+  urls: z.array(z.string().trim().min(1).max(2000)).min(1).max(MAX_LINKS_PER_PASTE),
+});
+
+export const renamePlaceSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+});
+
+export const placeVoteSchema = z.object({
+  response: z.enum(["yes", "maybe", "no"]),
+});
+
+export const choosePlaceSchema = z.object({
+  placeId: z.string().uuid().nullable(), // null un-picks
+});
