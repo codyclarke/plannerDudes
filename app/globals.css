@@ -15,6 +15,10 @@
   }
 }
 
+/* 🪵 Pergola mode easter egg (see lib/pergola.ts): <html data-pergola>.
+   pergola:hidden / hidden pergola:inline swap bits of UI instantly. */
+@custom-variant pergola (&:where([data-pergola], [data-pergola] *));
+
 /* Semantic surface colors swap with the theme, so components use
    bg-background / bg-surface / text-muted / border-line instead of
    sprinkling dark: variants everywhere. Accent colors come straight from
@@ -69,4 +73,101 @@ body {
   background: var(--background);
   color: var(--foreground);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   🪵 Pergola mode — backyard re-skin.
+   Tailwind 4 utilities read their colors from --color-* variables, so
+   redefining the accent palette here (violet -> vine green, fuchsia ->
+   cedar, orange -> sunny amber) re-skins every gradient, button and badge
+   at once. Selectors are one notch more specific than the normal theme
+   blocks above, so pergola wins in light, dark and "match device" alike.
+   --------------------------------------------------------------------------- */
+:root[data-pergola] {
+  --color-violet-200: #dbe8c6;
+  --color-violet-300: #bcd69a;
+  --color-violet-400: #93b867;
+  --color-violet-500: #6f9845;
+  --color-violet-600: #587d34;
+  --color-violet-700: #456329;
+  --color-violet-800: #364d21;
+  --color-violet-900: #2a3b1b;
+  --color-violet-950: #18220f;
+  --color-fuchsia-500: #b8672f;
+  --color-fuchsia-600: #9c5326;
+  --color-orange-400: #e2a640;
+
+  /* Warm cedar surfaces (light) */
+  --background: #f8efe3;
+  --foreground: #3a2816;
+  --surface: #fffaf2;
+  --surface-2: #f2e3cf;
+  --muted: #7d6650;
+  --line: #e6d2b6;
+}
+
+:root[data-pergola][data-theme="dark"] {
+  --background: #1d150e;
+  --foreground: #f6ebdc;
+  --surface: #2a1e14;
+  --surface-2: #36271a;
+  --muted: #bba68d;
+  --line: #4b3725;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-pergola]:not([data-theme="light"]) {
+    --background: #1d150e;
+    --foreground: #f6ebdc;
+    --surface: #2a1e14;
+    --surface-2: #36271a;
+    --muted: #bba68d;
+    --line: #4b3725;
+  }
+}
+
+/* Cedar crossbeams under the header (only rendered in pergola mode). */
+.pergola-beams {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 34px,
+      rgb(0 0 0 / 0.18) 34px 36px,
+      transparent 36px 70px
+    ),
+    linear-gradient(180deg, #a8693a, #8a5129 60%, #6f3f1f);
+  box-shadow: 0 4px 10px rgb(60 30 10 / 0.25);
+}
+
+/* String lights: warm bulbs that twinkle out of step with each other. */
+.pergola-bulb {
+  width: 9px;
+  height: 11px;
+  border-radius: 50% 50% 45% 45%;
+  background: #ffd76a;
+  box-shadow: 0 0 6px 2px rgb(255 200 90 / 0.75);
+  animation: pergola-twinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes pergola-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; box-shadow: 0 0 3px 1px rgb(255 200 90 / 0.4); }
+}
+
+/* Vines sway gently from the beam. */
+.pergola-vine {
+  transform-origin: top center;
+  animation: pergola-sway 5s ease-in-out infinite;
+}
+
+@keyframes pergola-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pergola-bulb,
+  .pergola-vine {
+    animation: none;
+  }
 }
