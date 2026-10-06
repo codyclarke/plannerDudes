@@ -234,7 +234,7 @@ export default function NewEventForm() {
                 onClick={() => setMode(value)}
                 className={cn(
                   "rounded-xl py-2 text-sm font-extrabold transition",
-                  mode === value ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"
+                  mode === value ? "bg-violet-600 text-white shadow-md shadow-violet-500/30" : "text-muted hover:text-foreground"
                 )}
               >
                 {label}

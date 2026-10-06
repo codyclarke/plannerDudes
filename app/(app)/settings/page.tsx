@@ -1,10 +1,13 @@
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { THEME_COOKIE, parseTheme } from "@/lib/theme";
 import { AVATARS_BUCKET } from "@/lib/images";
 import { signImages } from "@/lib/images.server";
 import { Card, PageTitle } from "@/components/ui";
 import LogoutButton from "@/components/LogoutButton";
 import AvatarEditor from "./avatar-editor";
 import PushToggle from "./push-toggle";
+import ThemePicker from "./theme-picker";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -26,6 +29,10 @@ export default async function SettingsPage() {
           email={profile?.email ?? null}
           avatarUrl={profile?.avatar_path ? (avatarUrls.get(profile.avatar_path) ?? null) : null}
         />
+      </Card>
+
+      <Card>
+        <ThemePicker initial={parseTheme((await cookies()).get(THEME_COOKIE)?.value)} />
       </Card>
 
       <Card>

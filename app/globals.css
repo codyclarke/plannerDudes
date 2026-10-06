@@ -1,10 +1,27 @@
 @import "tailwindcss";
 
-/* Semantic surface colors swap automatically with the OS dark-mode setting,
-   so components use bg-background / bg-surface / text-muted / border-line
-   instead of sprinkling dark: variants everywhere. Accent colors come
-   straight from Tailwind's palette (violet / fuchsia / orange). */
+/* Theme selection (see lib/theme.ts): <html data-theme="light|dark"> when the
+   user picked one in Settings; no attribute = follow the device setting.
+   Tailwind's dark: variant follows the same rule, so every dark: class in the
+   app respects the user's choice. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/* Semantic surface colors swap with the theme, so components use
+   bg-background / bg-surface / text-muted / border-line instead of
+   sprinkling dark: variants everywhere. Accent colors come straight from
+   Tailwind's palette (violet / fuchsia / orange). `color-scheme` makes
+   native controls (date pickers, scrollbars) match too. */
 :root {
+  color-scheme: light;
   --background: #fbf7ff;
   --foreground: #1e1530;
   --surface: #ffffff;
@@ -13,8 +30,21 @@
   --line: #e9e1f5;
 }
 
+/* Dark palette — applied by choice, or by the device when no choice is set.
+   (Duplicated because a selector can't be shared with a media query.) */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #120b1f;
+  --foreground: #f4effc;
+  --surface: #1d1430;
+  --surface-2: #261b3d;
+  --muted: #a99fbe;
+  --line: #33274a;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --background: #120b1f;
     --foreground: #f4effc;
     --surface: #1d1430;
@@ -39,10 +69,4 @@ body {
   background: var(--background);
   color: var(--foreground);
   -webkit-tap-highlight-color: transparent;
-}
-
-/* Native date/time pickers follow the page theme. */
-input[type="date"],
-input[type="time"] {
-  color-scheme: light dark;
 }
