@@ -26,7 +26,16 @@ export type DashboardEvent = {
   deadline: Deadline | null;
 };
 
-export default function DashboardView({ name, events }: { name: string; events: DashboardEvent[] }) {
+export default function DashboardView({
+  name,
+  events,
+  eventHref = (id) => `/events/${id}`,
+}: {
+  name: string;
+  events: DashboardEvent[];
+  /** Where a card links to (the offline page links within itself). */
+  eventHref?: (id: string) => string;
+}) {
   const firstName = name.split(/\s+/)[0];
   const locked = events.filter((e) => e.status === "finalized");
   const voting = events.filter((e) => e.status === "polling");
@@ -81,7 +90,7 @@ export default function DashboardView({ name, events }: { name: string; events: 
           <SectionTitle>🔒 Locked in</SectionTitle>
           <div className="flex flex-col gap-3">
             {locked.map((e) => (
-              <EventCard key={e.id} event={e} />
+              <EventCard key={e.id} event={e} href={eventHref(e.id)} />
             ))}
           </div>
         </section>
@@ -92,7 +101,7 @@ export default function DashboardView({ name, events }: { name: string; events: 
           <SectionTitle>🗳️ Still voting</SectionTitle>
           <div className="flex flex-col gap-3">
             {voting.map((e) => (
-              <EventCard key={e.id} event={e} />
+              <EventCard key={e.id} event={e} href={eventHref(e.id)} />
             ))}
           </div>
         </section>
@@ -101,11 +110,14 @@ export default function DashboardView({ name, events }: { name: string; events: 
   );
 }
 
-function EventCard({ event: e }: { event: DashboardEvent }) {
+function EventCard({ event: e, href }: { event: DashboardEvent; href: string }) {
   const theme = eventTheme(e.id);
+  // Hash links (the offline page) need a plain <a>: the Next router updates
+  // the URL without firing "hashchange", so the page wouldn't notice.
+  const Anchor = href.startsWith("#") ? "a" : Link;
   return (
-    <Link
-      href={`/events/${e.id}`}
+    <Anchor
+      href={href}
       className={cn(
         "group block overflow-hidden rounded-3xl ring-1 transition hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]",
         theme.card
@@ -179,6 +191,6 @@ function EventCard({ event: e }: { event: DashboardEvent }) {
           </div>
         </div>
       </div>
-    </Link>
+    </Anchor>
   );
 }

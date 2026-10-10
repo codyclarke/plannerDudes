@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/update-password"];
+// /offline is a data-free shell (the snapshot lives on the device), cached by
+// the service worker; it must load without a session.
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/update-password", "/offline"];
 
 function isPublicPath(pathname: string) {
   if (PUBLIC_PATHS.includes(pathname)) return true;

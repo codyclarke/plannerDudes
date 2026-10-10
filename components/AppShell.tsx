@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui";
 import { BottomNav, TopNavLinks } from "@/components/AppNav";
 import { PergolaDecor, PergolaLogo } from "@/components/Pergola";
+import OfflineSync from "@/components/OfflineSync";
 
 export default function AppShell({
   name,
@@ -34,6 +35,8 @@ export default function AppShell({
           pergola mode, the top padding clears the beam hanging off the header). */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-6 pb-32 pergola:pt-14 md:pb-12">{children}</main>
       <BottomNav />
+      {/* Saves a read-only copy of upcoming events for offline use. */}
+      <OfflineSync />
     </div>
   );
 }
