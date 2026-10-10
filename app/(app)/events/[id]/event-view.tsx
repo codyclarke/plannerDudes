@@ -9,6 +9,7 @@ import RsvpForm from "./rsvp-form";
 import DeadlineBanner from "./deadline-banner";
 import ChangeDate from "./change-date";
 import PlacesSection, { type PlaceView } from "./places-section";
+import EditEvent, { type EditableEvent } from "./edit-event";
 import type { Deadline } from "@/lib/voting-deadline";
 
 export type OptionView = {
@@ -55,6 +56,8 @@ export type EventViewProps = {
   places: PlaceView[];
   chosenPlaceId: string | null;
   topPlaceId: string | null;
+  /** Set when the viewer is the organizer or app owner: enables Edit / Delete. */
+  editable: EditableEvent | null;
 };
 
 export default function EventView({
@@ -69,6 +72,7 @@ export default function EventView({
   places,
   chosenPlaceId,
   topPlaceId,
+  editable,
 }: EventViewProps) {
   const chosenPlace = places.find((p) => p.id === chosenPlaceId) ?? null;
   const theme = eventTheme(event.id);
@@ -76,9 +80,12 @@ export default function EventView({
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/dashboard" className="self-start text-sm font-bold text-muted hover:text-foreground">
-        ← All events
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link href="/dashboard" className="text-sm font-bold text-muted hover:text-foreground">
+          ← All events
+        </Link>
+        {editable && <EditEvent event={editable} />}
+      </div>
 
       <section className={cn("overflow-hidden rounded-[2rem] ring-1", theme.card)}>
         {/* Header photo: organizers can add/change/remove it in place. */}

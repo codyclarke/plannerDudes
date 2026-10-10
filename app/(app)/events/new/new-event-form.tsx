@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EMOJI_CHOICES, eventEmoji } from "@/lib/emoji";
+import { eventEmoji } from "@/lib/emoji";
 import { MAX_DATE_OPTIONS } from "@/lib/validations";
 import { endOfDayIso } from "@/lib/voting-deadline";
 import { COVER_IMAGE, discardImage, uploadImage } from "@/lib/upload-image";
 import { EVENT_IMAGES_BUCKET } from "@/lib/images";
-import { Button, Card, ErrorText, Field, PageTitle, cn, inputClasses } from "@/components/ui";
+import { Button, Card, ErrorText, Field, PageTitle, cn, inputClasses, EmojiGrid, TogglePill } from "@/components/ui";
 import CoverPicker from "@/components/CoverPicker";
 
 type CandidateInput = { date: string; time: string };
@@ -172,24 +172,13 @@ export default function NewEventForm() {
             </div>
           </div>
           {showEmojiPicker && (
-            <div className="grid grid-cols-8 gap-1 rounded-2xl bg-surface-2 p-2">
-              {EMOJI_CHOICES.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => {
-                    setPickedEmoji(e);
-                    setShowEmojiPicker(false);
-                  }}
-                  className={cn(
-                    "rounded-xl py-1.5 text-2xl transition hover:scale-110",
-                    e === emoji && "bg-surface ring-2 ring-violet-500"
-                  )}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
+            <EmojiGrid
+              value={emoji}
+              onPick={(e) => {
+                setPickedEmoji(e);
+                setShowEmojiPicker(false);
+              }}
+            />
           )}
           <Field label="Where?">
             <input
@@ -337,29 +326,5 @@ export default function NewEventForm() {
         </Button>
       </form>
     </div>
-  );
-}
-
-function TogglePill({
-  on,
-  onToggle,
-  children,
-}: {
-  on: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onToggle}
-      className={cn(
-        "rounded-full px-4 py-2 text-sm font-bold ring-1 transition active:scale-95",
-        on ? "bg-violet-600 text-white ring-violet-600 shadow-md shadow-violet-500/30" : "bg-surface-2 text-muted ring-line"
-      )}
-    >
-      {children}
-    </button>
   );
 }

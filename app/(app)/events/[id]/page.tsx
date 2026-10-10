@@ -7,6 +7,7 @@ import { dateKeyInAppZone } from "@/lib/format";
 import { describeDeadline } from "@/lib/voting-deadline";
 import EventView, { EventNotFound, type OptionView } from "./event-view";
 import type { PlaceView } from "./places-section";
+import type { EditableEvent } from "./edit-event";
 
 // Reads the clock, so it lives outside the component (render must stay pure).
 function deadlineProps(closesAt: string | null) {
@@ -108,6 +109,33 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const bestPlace = [...placeViews].sort((a, b) => b.yes - a.yes || b.maybe - a.maybe)[0];
   const topPlaceId = bestPlace && bestPlace.yes + bestPlace.maybe > 0 ? bestPlace.id : null;
 
+  // Organizer or app owner can edit details, fix poll dates and delete.
+  const canManage = isOrganizer || !!people.list.find((p) => p.id === auth.user!.id)?.isOwner;
+  // Who'd be told if it's deleted: anyone (besides the organizer and you)
+  // who voted, RSVP'd or voted on a place — same rule as DELETE /api/events/[id].
+  const responders = new Set([...allVotes, ...(placeVotes ?? [])].map((v) => v.profile_id));
+  responders.delete(event.organizer_id);
+  responders.delete(auth.user.id);
+  const editable: EditableEvent | null = canManage
+    ? {
+        id: event.id,
+        title: event.title,
+        emoji: eventEmoji(event.title, event.emoji),
+        description: event.description,
+        location: event.location,
+        spousesInvited: event.spouses_invited,
+        kidsAllowed: event.kids_allowed,
+        polling: event.status === "polling",
+        options: optionViews.map((o) => ({
+          id: o.id,
+          startsAt: o.startsAt,
+          allDay: o.allDay,
+          votes: o.yes + o.maybe + o.no,
+        })),
+        responderCount: responders.size,
+      }
+    : null;
+
   return (
     <EventView
       event={{
@@ -132,6 +160,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       places={placeViews}
       chosenPlaceId={event.chosen_place_id}
       topPlaceId={topPlaceId}
+      editable={editable}
     />
   );
 }

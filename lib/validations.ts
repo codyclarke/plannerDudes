@@ -28,15 +28,26 @@ export const eventOptionInput = z.union([
   }),
 ]);
 
+/** Event details shared by create and edit. */
+const eventDetailsFields = {
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(2000).optional(),
+  location: z.string().trim().max(200).optional(),
+  emoji: z.string().trim().min(1).max(16).optional(),
+  spousesInvited: z.boolean(),
+  kidsAllowed: z.boolean(),
+};
+
+/** Organizer (or app owner) edits an event's details. */
+export const editEventSchema = z.object(eventDetailsFields);
+
+/** Organizer adds a candidate date to a poll. */
+export const addOptionSchema = z.object({ option: eventOptionInput });
+
 export const createEventSchema = z
   .object({
-    title: z.string().trim().min(1).max(120),
-    description: z.string().trim().max(2000).optional(),
-    location: z.string().trim().max(200).optional(),
-    emoji: z.string().trim().min(1).max(16).optional(),
+    ...eventDetailsFields,
     imagePath: z.string().max(200).optional(), // ownership checked in the route
-    spousesInvited: z.boolean(),
-    kidsAllowed: z.boolean(),
     // true = "set date" event: exactly one date, created already locked in.
     fixedDate: z.boolean().default(false),
     votingClosesAt: z.iso.datetime().optional(), // end of the chosen day, converted client-side

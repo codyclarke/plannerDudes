@@ -89,6 +89,15 @@ export function sendEventCreatedEmail(opts: {
   });
 }
 
+export function sendEventCancelledEmail(opts: { to: string[]; deletedByName: string; title: string }) {
+  return send({
+    to: opts.to,
+    subject: `Called off: ${opts.title}`,
+    html: `<p>${esc(opts.deletedByName)} called off <strong>${esc(opts.title)}</strong>, so it's been removed from ${APP_NAME}.</p>
+           <p>If you added it to your calendar, you can delete it there too.</p>`,
+  });
+}
+
 export function sendEventDateChangedEmail(opts: {
   to: string[];
   organizerName: string;

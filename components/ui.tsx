@@ -2,6 +2,7 @@
 // Client Components. Interactive ones (Stepper) are only used from client code.
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { dateParts } from "@/lib/format";
+import { EMOJI_CHOICES } from "@/lib/emoji";
 
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -164,6 +165,49 @@ export function Stepper({
       >
         +
       </button>
+    </div>
+  );
+}
+
+/** On/off pill (e.g. "💑 Partners invited"). */
+export function TogglePill({
+  on,
+  onToggle,
+  children,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onToggle}
+      className={cn(
+        "rounded-full px-4 py-2 text-sm font-bold ring-1 transition active:scale-95",
+        on ? "bg-violet-600 text-white ring-violet-600 shadow-md shadow-violet-500/30" : "bg-surface-2 text-muted ring-line"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Grid of event emoji to pick from; `value` is highlighted. */
+export function EmojiGrid({ value, onPick }: { value: string; onPick: (emoji: string) => void }) {
+  return (
+    <div className="grid grid-cols-8 gap-1 rounded-2xl bg-surface-2 p-2">
+      {EMOJI_CHOICES.map((e) => (
+        <button
+          key={e}
+          type="button"
+          onClick={() => onPick(e)}
+          className={cn("rounded-xl py-1.5 text-2xl transition hover:scale-110", e === value && "bg-surface ring-2 ring-violet-500")}
+        >
+          {e}
+        </button>
+      ))}
     </div>
   );
 }
