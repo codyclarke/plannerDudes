@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isSingleEmoji } from "./reactions";
+import { MAX_MESSAGE_LENGTH } from "./chatter";
 
 /** Most candidate dates a poll can have (the create form uses this too). */
 export const MAX_DATE_OPTIONS = 8;
@@ -128,3 +129,20 @@ export const reactionSchema = z.object({
   emoji: z.string().max(32).refine(isSingleEmoji, "pick one emoji"),
   add: z.boolean(),
 });
+
+/** Your reaction on a chat message (the message is in the URL). */
+export const messageReactionSchema = z.object({
+  emoji: z.string().max(32).refine(isSingleEmoji, "pick one emoji"),
+  add: z.boolean(),
+});
+
+export const postMessageSchema = z.object({
+  body: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+  isIdea: z.boolean().default(false),
+});
+
+/** The author edits the text, or the organizer / app owner pins an idea. */
+export const updateMessageSchema = z.union([
+  z.object({ body: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH) }),
+  z.object({ pinned: z.boolean() }),
+]);

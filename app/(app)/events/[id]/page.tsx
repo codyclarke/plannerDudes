@@ -6,6 +6,7 @@ import { loadPeople } from "@/lib/people.server";
 import { dateKeyInAppZone } from "@/lib/format";
 import { describeDeadline } from "@/lib/voting-deadline";
 import { groupReactions } from "@/lib/reactions";
+import { loadChatter, loadLastRead } from "@/lib/chatter.server";
 import EventView, { EventNotFound, type OptionView } from "./event-view";
 import type { PlaceView } from "./places-section";
 import type { EditableEvent } from "./edit-event";
@@ -125,7 +126,16 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const canManage = isOrganizer || !!people.list.find((p) => p.id === auth.user!.id)?.isOwner;
   // Who'd be told if it's deleted: anyone (besides the organizer and you)
   // who voted, RSVP'd or voted on a place — same rule as DELETE /api/events/[id].
-  const responders = new Set([...allVotes, ...(placeVotes ?? [])].map((v) => v.profile_id));
+  const [chatterPage, lastRead, { data: chatAuthors }] = await Promise.all([
+    loadChatter(supabase, eventId, auth.user.id, people.get),
+    loadLastRead(supabase, [eventId], auth.user.id),
+    supabase.from("event_messages").select("author_id").eq("event_id", eventId),
+  ]);
+  const lastReadAt = lastRead.get(eventId) ?? null;
+  const responders = new Set([
+    ...[...allVotes, ...(placeVotes ?? [])].map((v) => v.profile_id),
+    ...(chatAuthors ?? []).map((m) => m.author_id),
+  ]);
   responders.delete(event.organizer_id);
   responders.delete(auth.user.id);
   const editable: EditableEvent | null = canManage
@@ -174,6 +184,16 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       chosenPlaceId={event.chosen_place_id}
       topPlaceId={topPlaceId}
       editable={editable}
+      chatter={{
+        initial: chatterPage,
+        lastReadAt,
+        unread: chatterPage.messages.filter(
+          (m) => !m.mine && (!lastReadAt || new Date(m.createdAt) > new Date(lastReadAt))
+        ).length,
+        me: { id: auth.user.id, name: people.get(auth.user.id).name },
+        canModerate: canManage,
+        people: people.list.map(({ id, name, avatarUrl }) => ({ id, name, avatarUrl })),
+      }}
     />
   );
 }

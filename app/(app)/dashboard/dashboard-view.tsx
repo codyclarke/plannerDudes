@@ -24,6 +24,8 @@ export type DashboardEvent = {
   needsRsvp: boolean;
   /** Voting countdown for events still being voted on. */
   deadline: Deadline | null;
+  /** Chat messages from others since you last read the event's chat. */
+  unreadMessages: number;
 };
 
 export default function DashboardView({
@@ -185,6 +187,11 @@ function EventCard({ event: e, href }: { event: DashboardEvent; href: string }) 
             )}
             {e.deadline && !e.deadline.closed && (
               <Chip tone={e.deadline.urgent ? "rose" : "neutral"}>⏳ {e.deadline.short}</Chip>
+            )}
+            {e.unreadMessages > 0 && (
+              <span className="rounded-full bg-fuchsia-500/15 px-2.5 py-1 text-xs font-extrabold text-fuchsia-700 dark:text-fuchsia-300">
+                💬 {e.unreadMessages} new
+              </span>
             )}
             {e.spousesInvited && <Chip tone="violet">💑 Partners</Chip>}
             {e.kidsAllowed && <Chip tone="sky">🧒 Kids</Chip>}

@@ -13,6 +13,8 @@ import EditEvent, { type EditableEvent } from "./edit-event";
 import type { Deadline } from "@/lib/voting-deadline";
 import type { ReactionView } from "@/lib/reactions";
 import ReactionBar from "./reaction-bar";
+import Chatter, { ChatterJumpChip } from "./chatter";
+import type { ChatterPage } from "@/lib/chatter";
 
 export type OptionView = {
   id: string;
@@ -62,6 +64,15 @@ export type EventViewProps = {
   topPlaceId: string | null;
   /** Set when the viewer is the organizer or app owner: enables Edit / Delete. */
   editable: EditableEvent | null;
+  chatter: {
+    initial: ChatterPage;
+    lastReadAt: string | null;
+    unread: number;
+    me: { id: string; name: string };
+    /** Organizer or app owner: delete any message, pin ideas. */
+    canModerate: boolean;
+    people: Person[];
+  };
 };
 
 export default function EventView({
@@ -78,6 +89,7 @@ export default function EventView({
   chosenPlaceId,
   topPlaceId,
   editable,
+  chatter,
 }: EventViewProps) {
   const chosenPlace = places.find((p) => p.id === chosenPlaceId) ?? null;
   const theme = eventTheme(event.id);
@@ -135,6 +147,13 @@ export default function EventView({
           </div>
           {event.location && <p className="mt-4 font-semibold">📍 {event.location}</p>}
           {event.description && <p className="mt-2 whitespace-pre-wrap text-muted">{event.description}</p>}
+          <div className="mt-4">
+            <ChatterJumpChip
+              eventId={event.id}
+              initialTotal={chatter.initial.total}
+              initialUnread={chatter.unread}
+            />
+          </div>
           {isOrganizer && !event.imageUrl && (
             <div className="mt-4">
               <CoverEditor eventId={event.id} imageUrl={null} />
@@ -187,6 +206,15 @@ export default function EventView({
         chosenPlaceId={chosenPlaceId}
         topPlaceId={topPlaceId}
         isOrganizer={isOrganizer}
+      />
+
+      <Chatter
+        eventId={event.id}
+        initial={chatter.initial}
+        lastReadAt={chatter.lastReadAt}
+        me={chatter.me}
+        canModerate={chatter.canModerate}
+        people={chatter.people}
       />
     </div>
   );
@@ -278,11 +306,12 @@ function LockedIn({
                     </span>
                   </div>
                   <ReactionBar
-                    eventId={eventId}
-                    targetId={g.id}
-                    targetName={g.name}
+                    endpoint={`/api/events/${eventId}/reactions`}
+                    extraBody={{ targetId: g.id }}
+                    label={`React to ${g.name}'s RSVP`}
                     myName={myName}
                     reactions={g.reactions}
+                    indent
                   />
                 </li>
               ))}

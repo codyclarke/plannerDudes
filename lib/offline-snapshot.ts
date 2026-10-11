@@ -48,6 +48,19 @@ export type OfflineEvent = {
     myResponse: Response | null;
   }[];
   chosenPlaceId: string | null;
+  /** Latest chat messages, oldest first (missing in older snapshots). */
+  messages?: {
+    id: string;
+    authorName: string;
+    body: string;
+    createdAt: string;
+    edited: boolean;
+    isIdea: boolean;
+    pinned: boolean;
+    mentionNames: string[];
+    mine: boolean;
+    reactions: { emoji: string; count: number; names: string[] }[];
+  }[];
 };
 
 export type OfflineSnapshot = {

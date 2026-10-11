@@ -21,21 +21,40 @@ function toggled(list: ReactionView[], emoji: string, add: boolean, myName: stri
 }
 
 /**
- * Emoji reactions under someone's "I'm in": tap a chip to add/remove yours,
- * or ＋ for the quick row, any emoji from the keyboard, and who reacted.
+ * Emoji reaction chips (on RSVPs and chat messages): tap a chip to add or
+ * remove yours, or ＋ for the quick row, any emoji from the keyboard, and
+ * who reacted.
  */
 export default function ReactionBar({
-  eventId,
-  targetId,
-  targetName,
+  endpoint,
+  extraBody,
+  label,
   myName,
   reactions,
+  indent = false,
+  align = "start",
+  open: openProp,
+  onOpenChange,
+  hideAddWhenEmpty = false,
+  onSaved,
 }: {
-  eventId: string;
-  targetId: string;
-  targetName: string;
+  /** POSTed { ...extraBody, emoji, add }. */
+  endpoint: string;
+  extraBody?: Record<string, string>;
+  /** Accessible name of the ＋ button, e.g. "React to Pat's RSVP". */
+  label: string;
   myName: string;
   reactions: ReactionView[];
+  /** Line up with the name next to an avatar. */
+  indent?: boolean;
+  align?: "start" | "end";
+  /** Control the picker from outside (e.g. a "React" link elsewhere). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** No ＋ button until there's a reaction (open the picker some other way). */
+  hideAddWhenEmpty?: boolean;
+  /** After a save lands; defaults to refreshing the page's server data. */
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [list, setList] = useState(reactions);
@@ -45,7 +64,12 @@ export default function ReactionBar({
     setServerList(reactions);
     setList(reactions);
   }
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    onOpenChange?.(next);
+  };
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -57,10 +81,10 @@ export default function ReactionBar({
     }
     const before = list;
     setList(toggled(list, emoji, add, myName));
-    const res = await fetch(`/api/events/${eventId}/reactions`, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId, emoji, add }),
+      body: JSON.stringify({ ...extraBody, emoji, add }),
     });
     if (!res.ok) {
       setList(before);
@@ -69,7 +93,8 @@ export default function ReactionBar({
       setError(body?.error ? `Couldn't react: ${body.error}` : "Couldn't save that — try again.");
       return;
     }
-    router.refresh();
+    if (onSaved) onSaved();
+    else router.refresh();
   }
 
   const isMine = (emoji: string) => !!list.find((c) => c.emoji === emoji)?.mine;
@@ -80,9 +105,12 @@ export default function ReactionBar({
     void react(emoji, !isMine(emoji));
   }
 
+  const showAdd = !hideAddWhenEmpty || list.length > 0;
+  if (!showAdd && !open && !error) return null;
+
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1.5 pl-12">
+      <div className={cn("flex flex-wrap items-center gap-1.5 empty:hidden", indent && "pl-12", align === "end" && "justify-end")}>
         {list.map((c) => (
           <button
             key={c.emoji}
@@ -102,11 +130,12 @@ export default function ReactionBar({
             {c.count}
           </button>
         ))}
+        {showAdd && (
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpen(!open)}
           aria-expanded={open}
-          aria-label={`React to ${targetName}'s RSVP`}
+          aria-label={label}
           className={cn(
             "inline-flex items-center rounded-full px-2 py-0.5 text-sm font-extrabold ring-1 transition active:scale-95",
             open ? "bg-violet-500/15 text-violet-700 ring-violet-500/60 dark:text-violet-300" : "bg-surface text-muted ring-line hover:text-foreground"
@@ -114,6 +143,7 @@ export default function ReactionBar({
         >
           <span className="text-base leading-none grayscale-[0.4]">😀</span>＋
         </button>
+        )}
       </div>
 
       {open && (
@@ -161,7 +191,17 @@ export default function ReactionBar({
         </div>
       )}
 
-      {error && <p className="mt-1 pl-12 text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && (
+        <p
+          className={cn(
+            "mt-1 text-xs font-bold text-rose-600 dark:text-rose-400",
+            indent && "pl-12",
+            align === "end" && "text-right"
+          )}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }

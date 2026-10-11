@@ -8,6 +8,7 @@ import { loadPeople } from "./people.server";
 import type { createClient } from "./supabase/server";
 import type { Database } from "./supabase/types";
 import { describeDeadline } from "./voting-deadline";
+import { loadUnreadCounts } from "./chatter.server";
 import type { DashboardEvent } from "@/app/(app)/dashboard/dashboard-view";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -62,9 +63,12 @@ export async function loadDashboard(
 
   const upcoming = pickUpcoming(events ?? [], options ?? []);
   // These rows came through RLS, so the viewer may see their covers.
-  const imageUrls = withImages
-    ? await signImages(EVENT_IMAGES_BUCKET, upcoming.map((e) => e.image_path))
-    : new Map<string, string>();
+  const [imageUrls, unread] = await Promise.all([
+    withImages
+      ? signImages(EVENT_IMAGES_BUCKET, upcoming.map((e) => e.image_path))
+      : Promise.resolve(new Map<string, string>()),
+    loadUnreadCounts(supabase, upcoming.map((e) => e.id), userId),
+  ]);
   const now = new Date();
 
   const cards: DashboardEvent[] = upcoming.map((event) => {
@@ -98,6 +102,7 @@ export async function loadDashboard(
         !!finalizedOption &&
         !eventVotes.some((v) => v.event_option_id === finalizedOption.id && v.profile_id === userId),
       deadline: event.status === "polling" ? describeDeadline(event.voting_closes_at, now) : null,
+      unreadMessages: unread.get(event.id) ?? 0,
     };
   });
 

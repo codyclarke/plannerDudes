@@ -94,11 +94,12 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
   return NextResponse.json({ ok: true, notified: responders.length });
 }
 
-/** People (other than `exclude`) who voted, RSVP'd or voted on a place. */
+/** People (other than `exclude`) who voted, RSVP'd, voted on a place or chatted. */
 async function respondersTo(admin: ReturnType<typeof createAdminClient>, eventId: string, exclude: string[]) {
-  const [{ data: options }, { data: places }] = await Promise.all([
+  const [{ data: options }, { data: places }, { data: messages }] = await Promise.all([
     admin.from("event_options").select("id").eq("event_id", eventId),
     admin.from("event_places").select("id").eq("event_id", eventId),
+    admin.from("event_messages").select("author_id").eq("event_id", eventId),
   ]);
   const optionIds = (options ?? []).map((o) => o.id);
   const placeIds = (places ?? []).map((p) => p.id);
@@ -110,7 +111,10 @@ async function respondersTo(admin: ReturnType<typeof createAdminClient>, eventId
       ? admin.from("place_votes").select("profile_id").in("place_id", placeIds)
       : Promise.resolve({ data: [] as { profile_id: string }[] }),
   ]);
-  const ids = new Set([...(votes ?? []), ...(placeVotes ?? [])].map((v) => v.profile_id));
+  const ids = new Set([
+    ...[...(votes ?? []), ...(placeVotes ?? [])].map((v) => v.profile_id),
+    ...(messages ?? []).map((m) => m.author_id),
+  ]);
   for (const id of exclude) ids.delete(id);
   return [...ids];
 }

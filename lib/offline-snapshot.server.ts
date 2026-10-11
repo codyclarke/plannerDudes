@@ -6,6 +6,8 @@ import type { OfflineEvent, OfflineSnapshot } from "./offline-snapshot";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
+const OFFLINE_MESSAGES_PER_EVENT = 20;
+
 /**
  * Builds the read-only offline copy of `myId`'s upcoming events. Pass the
  * caller's own (RLS-scoped) client so it only contains what they can see.
@@ -27,6 +29,28 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
     ? await supabase.from("rsvp_reactions").select("*").in("event_id", eventIds)
     : { data: [] };
   const name = (id: string) => people.get(id).name;
+
+  // Latest chat messages per event (newest first here; reversed below).
+  const messagePages = await Promise.all(
+    eventIds.map((id) =>
+      supabase
+        .from("event_messages")
+        .select("*")
+        .eq("event_id", id)
+        .order("created_at", { ascending: false })
+        .limit(OFFLINE_MESSAGES_PER_EVENT)
+    )
+  );
+  const messageRows = messagePages.flatMap((page) => page.data ?? []);
+  const messageIds = messageRows.map((m) => m.id);
+  const { data: messageReactionRows } = messageIds.length
+    ? await supabase.from("message_reactions").select("*").in("message_id", messageIds)
+    : { data: [] };
+  const messageReactions = groupReactions(
+    (messageReactionRows ?? []).map((r) => ({ ...r, target_id: r.message_id })),
+    myId,
+    name
+  );
 
   const events: Record<string, OfflineEvent> = {};
   for (const event of upcoming) {
@@ -91,6 +115,21 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
           };
         }),
       chosenPlaceId: event.chosen_place_id,
+      messages: messageRows
+        .filter((m) => m.event_id === event.id)
+        .reverse()
+        .map((m) => ({
+          id: m.id,
+          authorName: name(m.author_id),
+          body: m.body,
+          createdAt: m.created_at,
+          edited: !!m.edited_at,
+          isIdea: m.is_idea,
+          pinned: !!m.pinned_at,
+          mentionNames: m.mentions.map(name),
+          mine: m.author_id === myId,
+          reactions: (messageReactions.get(m.id) ?? []).map(({ emoji, count, names }) => ({ emoji, count, names })),
+        })),
     };
   }
 
@@ -99,7 +138,8 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
     userId: myId,
     myName,
     savedAt: new Date().toISOString(),
-    dashboard: cards,
+    // "New message" badges can't be cleared offline, so leave them out.
+    dashboard: cards.map((card) => ({ ...card, unreadMessages: 0 })),
     events,
   };
 }

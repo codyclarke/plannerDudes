@@ -1,6 +1,7 @@
 import { dateParts, formatWhen } from "@/lib/format";
 import type { OfflineEvent } from "@/lib/offline-snapshot";
 import { describeDeadline } from "@/lib/voting-deadline";
+import { messageTime, splitBody, todayKeys } from "@/lib/chatter";
 import { Avatar, AvatarStack, CalendarTile, Card, Chip, SectionTitle, cn, eventTheme } from "@/components/ui";
 
 const ANSWER: Record<"yes" | "maybe" | "no", string> = { yes: "✅ Yes", maybe: "🤔 Maybe", no: "😢 Can't" };
@@ -9,7 +10,8 @@ const RSVP: Record<"yes" | "maybe" | "no", string> = { yes: "🎉 You're in", ma
 
 const asPeople = (names: string[]) => names.map((name) => ({ name, avatarUrl: null }));
 
-/** Reads the clock, so it lives outside the component. */
+/** Reads the clock, so these live outside the component. */
+const todayNow = () => todayKeys(new Date());
 const deadlineNow = (closesAt: string | null) => describeDeadline(closesAt, new Date());
 
 /** Read-only version of the event page, built from the offline snapshot. */
@@ -127,7 +129,62 @@ export default function OfflineEventView({ event }: { event: OfflineEvent }) {
           </div>
         </section>
       )}
+
+      {event.messages && event.messages.length > 0 && <OfflineChatter messages={event.messages} />}
     </div>
+  );
+}
+
+/** The latest saved chat messages, read-only. */
+function OfflineChatter({ messages }: { messages: NonNullable<OfflineEvent["messages"]> }) {
+  const today = todayNow();
+  return (
+    <section>
+      <SectionTitle>💬 Chatter</SectionTitle>
+      <Card className="flex flex-col gap-3 p-3">
+        {messages.map((m) => (
+          <div key={m.id} className={cn("flex max-w-[85%] flex-col gap-1", m.mine ? "items-end self-end" : "items-start")}>
+            {!m.mine && <span className="px-1 text-xs font-bold text-muted">{m.authorName}</span>}
+            <p
+              className={cn(
+                "rounded-2xl px-3.5 py-2 break-words whitespace-pre-wrap",
+                m.mine ? "bg-linear-to-br from-violet-600 to-fuchsia-500 text-white" : "bg-surface-2",
+                m.isIdea && "ring-2 ring-amber-400/80"
+              )}
+            >
+              {m.isIdea && <span className="block text-[11px] font-extrabold uppercase">💡 Idea{m.pinned && " · 📌 Pinned"}</span>}
+              {splitBody(m.body, m.mentionNames).map((part, i) =>
+                part.kind === "mention" ? (
+                  <b key={i}>{part.value}</b>
+                ) : (
+                  <span key={i} className={part.kind === "link" ? "break-all underline" : undefined}>
+                    {part.value}
+                  </span>
+                )
+              )}
+            </p>
+            {m.reactions.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {m.reactions.map((r) => (
+                  <span
+                    key={r.emoji}
+                    title={r.names.join(", ")}
+                    className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-extrabold text-muted ring-1 ring-line"
+                  >
+                    <span className="text-base leading-none">{r.emoji}</span>
+                    {r.count}
+                  </span>
+                ))}
+              </div>
+            )}
+            <span className="px-1 text-[11px] font-semibold text-muted">
+              {messageTime(m.createdAt, today)}
+              {m.edited && " · edited"}
+            </span>
+          </div>
+        ))}
+      </Card>
+    </section>
   );
 }
 

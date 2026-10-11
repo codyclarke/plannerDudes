@@ -16,7 +16,7 @@ export type EditableEvent = {
   /** Voting still open: candidate dates can be added/removed. */
   polling: boolean;
   options: { id: string; startsAt: string; allDay: boolean; votes: number }[];
-  /** Other people who voted/RSVP'd — they're told if the event is deleted. */
+  /** Other people who voted/RSVP'd/chatted — they're told if the event is deleted. */
   responderCount: number;
 };
 
@@ -301,7 +301,7 @@ function DeleteEvent({ event }: { event: EditableEvent }) {
             Delete “{event.title}” for everyone? This can&apos;t be undone.{" "}
             {n === 0
               ? "Nobody else has responded yet, so it'll just disappear."
-              : `${n} ${n === 1 ? "person has" : "people have"} responded — they'll get a note that it's called off.`}
+              : `${n} ${n === 1 ? "person has" : "people have"} responded or chatted — they'll get a note that it's called off.`}
           </p>
           {error && <ErrorText>{error}</ErrorText>}
           <div className="flex gap-2">

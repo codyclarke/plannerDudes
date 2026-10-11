@@ -238,6 +238,64 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["reaction_push_log"]["Insert"]>;
         Relationships: never[];
       };
+      event_messages: {
+        Row: {
+          id: string;
+          event_id: string;
+          author_id: string;
+          body: string;
+          is_idea: boolean;
+          pinned_at: string | null;
+          mentions: string[];
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          author_id: string;
+          body: string;
+          is_idea?: boolean;
+          pinned_at?: string | null;
+          mentions?: string[];
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_messages"]["Insert"]>;
+        Relationships: never[];
+      };
+      message_reactions: {
+        Row: {
+          message_id: string;
+          event_id: string;
+          reactor_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: {
+          message_id: string;
+          event_id: string;
+          reactor_id: string;
+          emoji: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["message_reactions"]["Insert"]>;
+        Relationships: never[];
+      };
+      event_reads: {
+        Row: {
+          event_id: string;
+          profile_id: string;
+          last_read_at: string;
+        };
+        Insert: {
+          event_id: string;
+          profile_id: string;
+          last_read_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_reads"]["Insert"]>;
+        Relationships: never[];
+      };
       push_subscriptions: {
         Row: {
           id: string;
