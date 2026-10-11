@@ -5,6 +5,7 @@ import { EVENT_IMAGES_BUCKET } from "@/lib/images";
 import { loadPeople } from "@/lib/people.server";
 import { dateKeyInAppZone } from "@/lib/format";
 import { describeDeadline } from "@/lib/voting-deadline";
+import { groupReactions } from "@/lib/reactions";
 import EventView, { EventNotFound, type OptionView } from "./event-view";
 import type { PlaceView } from "./places-section";
 import type { EditableEvent } from "./edit-event";
@@ -71,9 +72,20 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   // The event row came through RLS above, so the viewer may see its cover.
   const imageUrls = await signImages(EVENT_IMAGES_BUCKET, [event.image_path]);
 
+  // Emoji reactions on "I'm in" RSVPs (only shown on people who are going).
+  const { data: reactionRows } = event.finalized_option_id
+    ? await supabase.from("rsvp_reactions").select("*").eq("event_id", eventId)
+    : { data: [] };
+  const reactions = groupReactions(reactionRows ?? [], auth.user.id, (id) => people.get(id).name);
+
   const going = allVotes
     .filter((v) => v.event_option_id === event.finalized_option_id && v.response === "yes")
-    .map((v) => ({ ...people.get(v.profile_id), adults: v.adults_count, kids: v.kids_count }));
+    .map((v) => ({
+      ...people.get(v.profile_id),
+      adults: v.adults_count,
+      kids: v.kids_count,
+      reactions: reactions.get(v.profile_id) ?? [],
+    }));
 
   // "Where should we stay?" links and their votes.
   const isOrganizer = event.organizer_id === auth.user.id;
@@ -156,6 +168,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       finalizedOptionId={event.finalized_option_id}
       topOptionId={topOptionId}
       going={going}
+      myName={people.get(auth.user.id).name}
       {...deadlineProps(event.voting_closes_at)}
       places={placeViews}
       chosenPlaceId={event.chosen_place_id}

@@ -1,5 +1,6 @@
 import { loadDashboard } from "./dashboard.server";
 import { eventEmoji } from "./emoji";
+import { groupReactions } from "./reactions";
 import type { createClient } from "./supabase/server";
 import type { OfflineEvent, OfflineSnapshot } from "./offline-snapshot";
 
@@ -22,6 +23,9 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
   const { data: placeVotes } = placeIds.length
     ? await supabase.from("place_votes").select("*").in("place_id", placeIds)
     : { data: [] };
+  const { data: reactionRows } = eventIds.length
+    ? await supabase.from("rsvp_reactions").select("*").in("event_id", eventIds)
+    : { data: [] };
   const name = (id: string) => people.get(id).name;
 
   const events: Record<string, OfflineEvent> = {};
@@ -29,6 +33,11 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
     const eventOptions = options.filter((o) => o.event_id === event.id);
     const optionVotes = (optionId: string) => votes.filter((v) => v.event_option_id === optionId);
     const finalVotes = event.finalized_option_id ? optionVotes(event.finalized_option_id) : [];
+    const reactions = groupReactions(
+      (reactionRows ?? []).filter((r) => r.event_id === event.id),
+      myId,
+      name
+    );
 
     events[event.id] = {
       id: event.id,
@@ -59,7 +68,12 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
       finalizedOptionId: event.finalized_option_id,
       going: finalVotes
         .filter((v) => v.response === "yes")
-        .map((v) => ({ name: name(v.profile_id), adults: v.adults_count, kids: v.kids_count })),
+        .map((v) => ({
+          name: name(v.profile_id),
+          adults: v.adults_count,
+          kids: v.kids_count,
+          reactions: (reactions.get(v.profile_id) ?? []).map(({ emoji, count, names }) => ({ emoji, count, names })),
+        })),
       maybeNames: finalVotes.filter((v) => v.response === "maybe").map((v) => name(v.profile_id)),
       places: (places ?? [])
         .filter((p) => p.event_id === event.id)

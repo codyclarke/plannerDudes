@@ -144,17 +144,33 @@ function WhoIsComing({ event }: { event: OfflineEvent }) {
       ) : (
         <ul className="flex flex-col gap-2">
           {event.going.map((g, i) => (
-            <li key={`${g.name}-${i}`} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2.5">
-              <Avatar name={g.name} />
-              <span className="font-bold">{g.name}</span>
-              <span className="ml-auto text-sm font-semibold text-muted">
-                {[
-                  g.adults > 0 && `+${g.adults} ${g.adults === 1 ? "adult" : "adults"}`,
-                  g.kids > 0 && `+${g.kids} ${g.kids === 1 ? "kid" : "kids"}`,
-                ]
-                  .filter(Boolean)
-                  .join(", ")}
-              </span>
+            <li key={`${g.name}-${i}`} className="flex flex-col gap-1.5 rounded-2xl bg-surface-2 p-2.5">
+              <div className="flex items-center gap-3">
+                <Avatar name={g.name} />
+                <span className="font-bold">{g.name}</span>
+                <span className="ml-auto text-sm font-semibold text-muted">
+                  {[
+                    g.adults > 0 && `+${g.adults} ${g.adults === 1 ? "adult" : "adults"}`,
+                    g.kids > 0 && `+${g.kids} ${g.kids === 1 ? "kid" : "kids"}`,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              </div>
+              {g.reactions && g.reactions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pl-12">
+                  {g.reactions.map((r) => (
+                    <span
+                      key={r.emoji}
+                      title={r.names.join(", ")}
+                      className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-extrabold text-muted ring-1 ring-line"
+                    >
+                      <span className="text-base leading-none">{r.emoji}</span>
+                      {r.count}
+                    </span>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -63,7 +63,7 @@ export function HeadcountSteppers({
   return (
     <div className="flex flex-wrap gap-2">
       {spousesInvited && (
-        <Stepper label="+ adults" value={answer.adults} onChange={(adults) => onChange({ adults })} />
+        <Stepper label="Additional Adults" value={answer.adults} onChange={(adults) => onChange({ adults })} />
       )}
       {kidsAllowed && <Stepper label="+ kids" value={answer.kids} onChange={(kids) => onChange({ kids })} />}
     </div>

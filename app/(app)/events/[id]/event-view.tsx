@@ -11,6 +11,8 @@ import ChangeDate from "./change-date";
 import PlacesSection, { type PlaceView } from "./places-section";
 import EditEvent, { type EditableEvent } from "./edit-event";
 import type { Deadline } from "@/lib/voting-deadline";
+import type { ReactionView } from "@/lib/reactions";
+import ReactionBar from "./reaction-bar";
 
 export type OptionView = {
   id: string;
@@ -47,7 +49,9 @@ export type EventViewProps = {
   options: OptionView[];
   finalizedOptionId: string | null;
   topOptionId: string | null;
-  going: (Person & { adults: number; kids: number })[];
+  going: (Person & { adults: number; kids: number; reactions: ReactionView[] })[];
+  /** Viewer's display name (for their own reactions before the save lands). */
+  myName: string;
   /** Voting countdown, or null when the event has no deadline. */
   deadline: Deadline | null;
   /** Closing day "YYYY-MM-DD" in the group's timezone, for the organizer's editor. */
@@ -67,6 +71,7 @@ export default function EventView({
   finalizedOptionId,
   topOptionId,
   going,
+  myName,
   deadline,
   closesOnDate,
   places,
@@ -143,6 +148,7 @@ export default function EventView({
           eventId={event.id}
           option={finalized}
           going={going}
+          myName={myName}
           spousesInvited={event.spousesInvited}
           kidsAllowed={event.kidsAllowed}
           canChangeDate={isOrganizer && event.fixedDate}
@@ -190,6 +196,7 @@ function LockedIn({
   eventId,
   option,
   going,
+  myName,
   spousesInvited,
   kidsAllowed,
   canChangeDate,
@@ -198,6 +205,7 @@ function LockedIn({
   eventId: string;
   option: OptionView;
   going: EventViewProps["going"];
+  myName: string;
   spousesInvited: boolean;
   kidsAllowed: boolean;
   /** Organizer of a set-date event can move it. */
@@ -256,17 +264,26 @@ function LockedIn({
           ) : (
             <ul className="flex flex-col gap-2">
               {going.map((g) => (
-                <li key={g.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2.5">
-                  <Avatar name={g.name} src={g.avatarUrl} />
-                  <span className="font-bold">{g.name}</span>
-                  <span className="ml-auto text-sm font-semibold text-muted">
-                    {[
-                      g.adults > 0 && `+${g.adults} ${g.adults === 1 ? "adult" : "adults"}`,
-                      g.kids > 0 && `+${g.kids} ${g.kids === 1 ? "kid" : "kids"}`,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
+                <li key={g.id} className="flex flex-col gap-1.5 rounded-2xl bg-surface-2 p-2.5">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={g.name} src={g.avatarUrl} />
+                    <span className="font-bold">{g.name}</span>
+                    <span className="ml-auto text-sm font-semibold text-muted">
+                      {[
+                        g.adults > 0 && `+${g.adults} ${g.adults === 1 ? "adult" : "adults"}`,
+                        g.kids > 0 && `+${g.kids} ${g.kids === 1 ? "kid" : "kids"}`,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  </div>
+                  <ReactionBar
+                    eventId={eventId}
+                    targetId={g.id}
+                    targetName={g.name}
+                    myName={myName}
+                    reactions={g.reactions}
+                  />
                 </li>
               ))}
             </ul>

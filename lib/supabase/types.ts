@@ -206,6 +206,38 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["place_votes"]["Insert"]>;
         Relationships: never[];
       };
+      rsvp_reactions: {
+        Row: {
+          event_id: string;
+          target_id: string;
+          reactor_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: {
+          event_id: string;
+          target_id: string;
+          reactor_id: string;
+          emoji: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rsvp_reactions"]["Insert"]>;
+        Relationships: never[];
+      };
+      reaction_push_log: {
+        Row: {
+          event_id: string;
+          target_id: string;
+          last_sent_at: string;
+        };
+        Insert: {
+          event_id: string;
+          target_id: string;
+          last_sent_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reaction_push_log"]["Insert"]>;
+        Relationships: never[];
+      };
       push_subscriptions: {
         Row: {
           id: string;

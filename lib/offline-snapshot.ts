@@ -29,7 +29,13 @@ export type OfflineEvent = {
   }[];
   finalizedOptionId: string | null;
   /** Who said yes to the locked-in date, with their extras. */
-  going: { name: string; adults: number; kids: number }[];
+  going: {
+    name: string;
+    adults: number;
+    kids: number;
+    /** Emoji reactions on their RSVP (missing in snapshots saved before reactions existed). */
+    reactions?: { emoji: string; count: number; names: string[] }[];
+  }[];
   maybeNames: string[];
   places: {
     id: string;

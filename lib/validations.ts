@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSingleEmoji } from "./reactions";
 
 /** Most candidate dates a poll can have (the create form uses this too). */
 export const MAX_DATE_OPTIONS = 8;
@@ -119,4 +120,11 @@ export const placeVoteSchema = z.object({
 
 export const choosePlaceSchema = z.object({
   placeId: z.string().uuid().nullable(), // null un-picks
+});
+
+/** Add or remove one of your emoji reactions on someone's RSVP. */
+export const reactionSchema = z.object({
+  targetId: z.string().uuid(),
+  emoji: z.string().max(32).refine(isSingleEmoji, "pick one emoji"),
+  add: z.boolean(),
 });
