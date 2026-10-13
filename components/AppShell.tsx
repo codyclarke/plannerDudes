@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui";
 import { BottomNav, TopNavLinks } from "@/components/AppNav";
 import { PergolaDecor, PergolaLogo } from "@/components/Pergola";
 import OfflineSync from "@/components/OfflineSync";
+import InstallButton from "@/components/InstallButton";
 
 export default function AppShell({
   name,
@@ -23,6 +24,8 @@ export default function AppShell({
           {/* Links home; tap 5 times for 🪵 Pergola mode. */}
           <PergolaLogo />
           <div className="flex items-center gap-3">
+            {/* Phones/tablets only, and never inside the installed app. */}
+            <InstallButton />
             <TopNavLinks />
             <Link href="/settings" aria-label="Settings" className="transition active:scale-90">
               <Avatar name={name} src={avatarUrl} />
