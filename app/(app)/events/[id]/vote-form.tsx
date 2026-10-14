@@ -6,6 +6,7 @@ import { dateParts } from "@/lib/format";
 import { AvatarStack, Button, CalendarTile, Chip, ErrorText, cn } from "@/components/ui";
 import type { OptionView } from "./event-view";
 import { type Answer, HeadcountSteppers, ResponseButtons, toVotePayload } from "./response-controls";
+import { DateRosterDetails } from "./roster";
 
 const LABELS = { yes: "✅ Yes", maybe: "🤔 Maybe", no: "😢 Can't" };
 
@@ -91,10 +92,10 @@ export default function VoteForm({
                   {o.id === topOptionId && <Chip tone="amber">🏆 Top pick</Chip>}
                 </div>
                 {o.label && <p className="text-sm text-muted">{time}</p>}
-                <div className="mt-1 flex items-center gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <AvatarStack people={o.yesPeople} />
-                  <span className="text-xs font-bold whitespace-nowrap text-muted">
-                    {o.yes} yes · {o.maybe} maybe
+                  <span className="text-xs font-bold text-muted">
+                    {o.yes} yes · {o.maybe} maybe · {o.no} can&apos;t
                     {o.totalAttendees > 0 && ` · 👥 ${o.totalAttendees}`}
                   </span>
                 </div>
@@ -119,6 +120,8 @@ export default function VoteForm({
                 />
               </div>
             )}
+            {/* Organizer / app owner only: names behind the counts. */}
+            {o.roster && <DateRosterDetails roster={o.roster} />}
           </div>
         );
       })}

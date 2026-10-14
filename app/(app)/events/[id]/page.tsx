@@ -10,6 +10,7 @@ import { loadChatter, loadLastRead } from "@/lib/chatter.server";
 import EventView, { EventNotFound, type OptionView } from "./event-view";
 import type { PlaceView } from "./places-section";
 import type { EditableEvent } from "./edit-event";
+import type { DateRoster, EventRoster } from "./roster";
 
 // Reads the clock, so it lives outside the component (render must stay pure).
 function deadlineProps(closesAt: string | null) {
@@ -42,6 +43,31 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     : { data: [] };
   const allVotes = votes ?? [];
 
+  // Organizer or app owner: edit details, fix poll dates, delete, and see
+  // who answered what.
+  const isOrganizer = event.organizer_id === auth.user.id;
+  const canManage = isOrganizer || !!people.list.find((p) => p.id === auth.user!.id)?.isOwner;
+  const toPerson = ({ id, name, avatarUrl }: { id: string; name: string; avatarUrl: string | null }) => ({
+    id,
+    name,
+    avatarUrl,
+  });
+  /** Everyone in the group, by their answer to one date. */
+  const dateRoster = (optionId: string): DateRoster => {
+    const optionVotes = allVotes.filter((v) => v.event_option_id === optionId);
+    const answered = new Set(optionVotes.map((v) => v.profile_id));
+    const withExtras = (response: "yes" | "maybe") =>
+      optionVotes
+        .filter((v) => v.response === response)
+        .map((v) => ({ ...toPerson(people.get(v.profile_id)), adults: v.adults_count, kids: v.kids_count }));
+    return {
+      yes: withExtras("yes"),
+      maybe: withExtras("maybe"),
+      no: optionVotes.filter((v) => v.response === "no").map((v) => toPerson(people.get(v.profile_id))),
+      none: people.list.filter((p) => !answered.has(p.id)).map(toPerson),
+    };
+  };
+
   const optionViews: OptionView[] = optionList.map((o) => {
     const optionVotes = allVotes.filter((v) => v.event_option_id === o.id);
     const yesVotes = optionVotes.filter((v) => v.response === "yes");
@@ -61,8 +87,21 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       myResponse: mine?.response ?? null,
       myAdults: mine?.adults_count ?? 0,
       myKids: mine?.kids_count ?? 0,
+      ...(canManage && { roster: dateRoster(o.id) }),
     };
   });
+
+  let roster: EventRoster | null = null;
+  if (canManage && event.status === "finalized" && event.finalized_option_id) {
+    roster = { mode: "rsvp", ...dateRoster(event.finalized_option_id) };
+  } else if (canManage) {
+    const voters = new Set(allVotes.map((v) => v.profile_id));
+    roster = {
+      mode: "voting",
+      voted: people.list.filter((p) => voters.has(p.id)).map(toPerson),
+      notVoted: people.list.filter((p) => !voters.has(p.id)).map(toPerson),
+    };
+  }
 
   // "Top pick": most people attending, then most yeses, then most maybes.
   const ranked = [...optionViews].sort(
@@ -89,7 +128,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     }));
 
   // "Where should we stay?" links and their votes.
-  const isOrganizer = event.organizer_id === auth.user.id;
   const { data: places } = await supabase
     .from("event_places")
     .select("*")
@@ -122,8 +160,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const bestPlace = [...placeViews].sort((a, b) => b.yes - a.yes || b.maybe - a.maybe)[0];
   const topPlaceId = bestPlace && bestPlace.yes + bestPlace.maybe > 0 ? bestPlace.id : null;
 
-  // Organizer or app owner can edit details, fix poll dates and delete.
-  const canManage = isOrganizer || !!people.list.find((p) => p.id === auth.user!.id)?.isOwner;
   // Who'd be told if it's deleted: anyone (besides the organizer and you)
   // who voted, RSVP'd or voted on a place — same rule as DELETE /api/events/[id].
   const [chatterPage, lastRead, { data: chatAuthors }] = await Promise.all([
@@ -184,6 +220,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       chosenPlaceId={event.chosen_place_id}
       topPlaceId={topPlaceId}
       editable={editable}
+      roster={roster}
       chatter={{
         initial: chatterPage,
         lastReadAt,

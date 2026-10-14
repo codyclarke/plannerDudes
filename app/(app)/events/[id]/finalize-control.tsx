@@ -71,7 +71,7 @@ export default function FinalizeControl({
             <span className="flex-1">
               <span className="block font-bold">{formatWhen(o.startsAt, o.allDay)}</span>
               <span className="text-xs font-semibold text-muted">
-                {o.yes} yes · {o.maybe} maybe · 👥 {o.totalAttendees}
+                {o.yes} yes · {o.maybe} maybe · {o.no} can&apos;t · 👥 {o.totalAttendees}
               </span>
             </span>
             {o.id === topOptionId && <Chip tone="amber">🏆</Chip>}

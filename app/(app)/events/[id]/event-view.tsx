@@ -13,6 +13,7 @@ import EditEvent, { type EditableEvent } from "./edit-event";
 import type { Deadline } from "@/lib/voting-deadline";
 import type { ReactionView } from "@/lib/reactions";
 import ReactionBar from "./reaction-bar";
+import { EventRosterCard, type DateRoster, type EventRoster } from "./roster";
 import Chatter, { ChatterJumpChip } from "./chatter";
 import type { ChatterPage } from "@/lib/chatter";
 
@@ -30,6 +31,8 @@ export type OptionView = {
   myResponse: "yes" | "maybe" | "no" | null;
   myAdults: number;
   myKids: number;
+  /** Who answered what — only for the organizer / app owner. */
+  roster?: DateRoster;
 };
 
 export type EventViewProps = {
@@ -64,6 +67,8 @@ export type EventViewProps = {
   topPlaceId: string | null;
   /** Set when the viewer is the organizer or app owner: enables Edit / Delete. */
   editable: EditableEvent | null;
+  /** Everyone's responses — only for the organizer / app owner. */
+  roster: EventRoster | null;
   chatter: {
     initial: ChatterPage;
     lastReadAt: string | null;
@@ -89,6 +94,7 @@ export default function EventView({
   chosenPlaceId,
   topPlaceId,
   editable,
+  roster,
   chatter,
 }: EventViewProps) {
   const chosenPlace = places.find((p) => p.id === chosenPlaceId) ?? null;
@@ -163,6 +169,7 @@ export default function EventView({
       </section>
 
       {event.status === "finalized" && finalized ? (
+        <>
         <LockedIn
           eventId={event.id}
           option={finalized}
@@ -173,6 +180,8 @@ export default function EventView({
           canChangeDate={isOrganizer && event.fixedDate}
           chosenPlace={chosenPlace}
         />
+        {roster && <EventRosterCard roster={roster} />}
+        </>
       ) : (
         <>
           <section>
@@ -185,6 +194,11 @@ export default function EventView({
                 isOrganizer={isOrganizer}
               />
             </div>
+            {roster && (
+              <div className="mb-3">
+                <EventRosterCard roster={roster} />
+              </div>
+            )}
             <VoteForm
               eventId={event.id}
               options={options}
