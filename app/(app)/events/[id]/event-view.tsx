@@ -13,6 +13,7 @@ import EditEvent, { type EditableEvent } from "./edit-event";
 import type { Deadline } from "@/lib/voting-deadline";
 import type { ReactionView } from "@/lib/reactions";
 import ReactionBar from "./reaction-bar";
+import ShareEvent from "./share-event";
 import { EventRosterCard, type DateRoster, type EventRoster } from "./roster";
 import Chatter, { ChatterJumpChip } from "./chatter";
 import type { ChatterPage } from "@/lib/chatter";
@@ -103,10 +104,18 @@ export default function EventView({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link href="/dashboard" className="text-sm font-bold text-muted hover:text-foreground">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Link href="/dashboard" className="mr-auto text-sm font-bold text-muted hover:text-foreground">
           ← All events
         </Link>
+        <ShareEvent
+          eventId={event.id}
+          text={`${event.emoji} ${event.title} — ${
+            event.status === "finalized" && finalized
+              ? formatWhen(finalized.startsAt, finalized.allDay)
+              : "help pick a date!"
+          }`}
+        />
         {editable && <EditEvent event={editable} />}
       </div>
 
