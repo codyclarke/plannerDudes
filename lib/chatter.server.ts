@@ -58,6 +58,7 @@ export async function loadChatter(
       authorName: author.name,
       authorAvatarUrl: author.avatarUrl,
       body: m.body,
+      gif: m.gif,
       createdAt: m.created_at,
       editedAt: m.edited_at,
       isIdea: m.is_idea,

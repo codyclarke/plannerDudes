@@ -5,6 +5,7 @@
 // `Relationships: never[]` on every table/view satisfies postgrest-js's
 // GenericTable/GenericView constraint (it requires the field to exist) —
 // omitting it silently collapses the whole schema's inferred types to `never`.
+import type { ChatGif } from "../chatter";
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
@@ -249,6 +250,7 @@ export interface Database {
           mentions: string[];
           created_at: string;
           edited_at: string | null;
+          gif: ChatGif | null;
         };
         Insert: {
           id?: string;
@@ -260,6 +262,7 @@ export interface Database {
           mentions?: string[];
           created_at?: string;
           edited_at?: string | null;
+          gif?: ChatGif | null;
         };
         Update: Partial<Database["public"]["Tables"]["event_messages"]["Insert"]>;
         Relationships: never[];

@@ -153,6 +153,7 @@ function OfflineChatter({ messages }: { messages: NonNullable<OfflineEvent["mess
               )}
             >
               {m.isIdea && <span className="block text-[11px] font-extrabold uppercase">💡 Idea{m.pinned && " · 📌 Pinned"}</span>}
+              {m.hasGif && <span className="block font-bold opacity-80">🎞️ GIF</span>}
               {splitBody(m.body, m.mentionNames).map((part, i) =>
                 part.kind === "mention" ? (
                   <b key={i}>{part.value}</b>

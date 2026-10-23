@@ -77,6 +77,9 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ messageId
   }
   const { body } = parsed.data;
   if (body === message.body) return NextResponse.json({ ok: true });
+  if (!body && !message.gif) {
+    return NextResponse.json({ error: "Messages need some text (or delete it instead)." }, { status: 400 });
+  }
 
   const people = await loadPeople(supabase, { withAvatars: false });
   const mentions = findMentions(body, people.list).filter((id) => id !== myId);

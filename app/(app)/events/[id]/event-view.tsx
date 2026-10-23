@@ -78,6 +78,8 @@ export type EventViewProps = {
     /** Organizer or app owner: delete any message, pin ideas. */
     canModerate: boolean;
     people: Person[];
+    /** A GIPHY key is configured: show the 🎞️ GIF picker. */
+    gifsEnabled: boolean;
   };
 };
 
@@ -238,6 +240,7 @@ export default function EventView({
         me={chatter.me}
         canModerate={chatter.canModerate}
         people={chatter.people}
+        gifsEnabled={chatter.gifsEnabled}
       />
     </div>
   );

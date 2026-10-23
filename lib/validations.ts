@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isSingleEmoji } from "./reactions";
-import { MAX_MESSAGE_LENGTH } from "./chatter";
+import { MAX_MESSAGE_LENGTH, isGiphyUrl } from "./chatter";
 
 /** Most candidate dates a poll can have (the create form uses this too). */
 export const MAX_DATE_OPTIONS = 8;
@@ -146,13 +146,27 @@ export const messageReactionSchema = z.object({
   add: z.boolean(),
 });
 
-export const postMessageSchema = z.object({
-  body: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
-  isIdea: z.boolean().default(false),
+const chatGifSchema = z.object({
+  url: z.string().max(500).refine(isGiphyUrl, "GIFs must come from GIPHY"),
+  width: z.number().int().positive().max(4000),
+  height: z.number().int().positive().max(4000),
+  title: z.string().max(200).default(""),
 });
 
-/** The author edits the text, or the organizer / app owner pins an idea. */
+/** Text, a GIF, or both. */
+export const postMessageSchema = z
+  .object({
+    body: z.string().trim().max(MAX_MESSAGE_LENGTH).default(""),
+    isIdea: z.boolean().default(false),
+    gif: chatGifSchema.nullable().default(null),
+  })
+  .refine((m) => m.body.length > 0 || m.gif !== null, "Say something or pick a GIF.");
+
+/**
+ * The author edits the text (may be empty if the message has a GIF — the
+ * route checks), or the organizer / app owner pins an idea.
+ */
 export const updateMessageSchema = z.union([
-  z.object({ body: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH) }),
+  z.object({ body: z.string().trim().max(MAX_MESSAGE_LENGTH) }),
   z.object({ pinned: z.boolean() }),
 ]);

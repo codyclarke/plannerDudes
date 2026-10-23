@@ -230,6 +230,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         me: { id: auth.user.id, name: people.get(auth.user.id).name },
         canModerate: canManage,
         people: people.list.map(({ id, name, avatarUrl }) => ({ id, name, avatarUrl })),
+        gifsEnabled: !!process.env.GIPHY_API_KEY,
       }}
     />
   );

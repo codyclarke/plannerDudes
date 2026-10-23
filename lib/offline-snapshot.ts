@@ -53,6 +53,8 @@ export type OfflineEvent = {
     id: string;
     authorName: string;
     body: string;
+    /** Had a GIF (not saved offline — shown as a placeholder). */
+    hasGif?: boolean;
     createdAt: string;
     edited: boolean;
     isIdea: boolean;

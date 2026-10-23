@@ -122,6 +122,7 @@ export async function buildOfflineSnapshot(supabase: ServerClient, myId: string)
           id: m.id,
           authorName: name(m.author_id),
           body: m.body,
+          hasGif: !!m.gif,
           createdAt: m.created_at,
           edited: !!m.edited_at,
           isIdea: m.is_idea,

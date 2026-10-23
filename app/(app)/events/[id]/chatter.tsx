@@ -10,9 +10,11 @@ import {
   messageDayKey,
   splitBody,
   todayKeys,
+  type ChatGif,
   type ChatterPage,
   type MessageView,
 } from "@/lib/chatter";
+import type { GifResult } from "@/app/api/gifs/route";
 import { getCounts, publishCounts, subscribeCounts } from "@/lib/chatter-store";
 import type { Person } from "@/lib/people";
 import { createClient } from "@/lib/supabase/client";
@@ -85,6 +87,7 @@ export default function Chatter({
   me,
   canModerate,
   people,
+  gifsEnabled,
 }: {
   eventId: string;
   initial: ChatterPage;
@@ -94,6 +97,8 @@ export default function Chatter({
   canModerate: boolean;
   /** For @mention suggestions. */
   people: Person[];
+  /** A GIPHY key is configured: show the 🎞️ GIF picker. */
+  gifsEnabled: boolean;
 }) {
   const [page, setPage] = useState(initial);
   // New server data (e.g. after router.refresh elsewhere on the page) wins.
@@ -265,6 +270,7 @@ export default function Chatter({
           me={me}
           people={people}
           empty={page.messages.length === 0}
+          gifsEnabled={gifsEnabled}
           onPosted={refresh}
         />
       </div>
@@ -299,7 +305,7 @@ function PinnedIdeas({
           <li key={m.id} className="flex items-start gap-2 text-sm">
             <span>💡</span>
             <p className="min-w-0 flex-1 break-words whitespace-pre-wrap">
-              <MessageText message={m} onGradient={false} />
+              {m.body ? <MessageText message={m} onGradient={false} /> : "🎞️ GIF"}
               <span className="font-semibold text-muted"> — {m.authorName}</span>
             </p>
             {canModerate && (
@@ -433,7 +439,7 @@ function Message({
               >
                 Cancel
               </Button>
-              <Button onClick={saveEdit} disabled={busy || !draft.trim()}>
+              <Button onClick={saveEdit} disabled={busy || (!draft.trim() && !m.gif)}>
                 {busy ? "Saving…" : "Save"}
               </Button>
             </div>
@@ -441,7 +447,8 @@ function Message({
         ) : (
           <div
             className={cn(
-              "rounded-2xl px-3.5 py-2 break-words whitespace-pre-wrap",
+              "rounded-2xl break-words whitespace-pre-wrap",
+              m.gif ? "p-1.5" : "px-3.5 py-2",
               m.mine
                 ? "rounded-tr-md bg-linear-to-br from-violet-600 to-fuchsia-500 text-white"
                 : "rounded-tl-md bg-surface-2",
@@ -452,13 +459,19 @@ function Message({
               <span
                 className={cn(
                   "mb-0.5 block text-[11px] font-extrabold tracking-wide uppercase",
-                  m.mine ? "text-amber-200" : "text-amber-700 dark:text-amber-300"
+                  m.mine ? "text-amber-200" : "text-amber-700 dark:text-amber-300",
+                  m.gif && "px-2 pt-0.5"
                 )}
               >
                 💡 Idea{m.pinned && " · 📌 Pinned"}
               </span>
             )}
-            <MessageText message={m} onGradient={m.mine} />
+            {m.gif && <GifImage gif={m.gif} />}
+            {m.body && (
+              <div className={cn(m.gif && "px-2 pt-1.5 pb-0.5")}>
+                <MessageText message={m} onGradient={m.mine} />
+              </div>
+            )}
           </div>
         )}
 
@@ -564,16 +577,20 @@ function Composer({
   me,
   people,
   empty,
+  gifsEnabled,
   onPosted,
 }: {
   eventId: string;
   me: { id: string; name: string };
   people: Person[];
   empty: boolean;
+  gifsEnabled: boolean;
   onPosted: () => void;
 }) {
   const [text, setText] = useState("");
   const [isIdea, setIsIdea] = useState(false);
+  const [gif, setGif] = useState<ChatGif | null>(null);
+  const [pickingGif, setPickingGif] = useState(false);
   const [caret, setCaret] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -608,13 +625,13 @@ function Composer({
   async function submit(e?: FormEvent) {
     e?.preventDefault();
     const body = text.trim();
-    if (!body || sending) return;
+    if ((!body && !gif) || sending) return;
     setSending(true);
     setError(null);
     const res = await fetch(`/api/events/${eventId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body, isIdea }),
+      body: JSON.stringify({ body, isIdea, gif }),
     });
     setSending(false);
     if (!res.ok) {
@@ -624,6 +641,7 @@ function Composer({
     }
     setText("");
     setIsIdea(false);
+    setGif(null);
     onPosted();
   }
 
@@ -669,6 +687,16 @@ function Composer({
         </ul>
       )}
 
+      {/* Above the message box, so the phone keyboard doesn't cover the results. */}
+      {pickingGif && (
+        <GifPicker
+          onPick={(picked) => {
+            setGif(picked);
+            setPickingGif(false);
+          }}
+          onClose={() => setPickingGif(false)}
+        />
+      )}
       <div
         className={cn(
           "rounded-3xl bg-surface-2 p-2",
@@ -677,6 +705,20 @@ function Composer({
             : "ring-1 ring-line focus-within:ring-2 focus-within:ring-violet-500/60"
         )}
       >
+        {gif && (
+          <div className="relative m-1 inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element -- GIPHY-hosted animated image */}
+            <img src={gif.url} alt={gif.title || "GIF"} className="block h-24 w-auto rounded-xl" />
+            <button
+              type="button"
+              onClick={() => setGif(null)}
+              aria-label="Remove GIF"
+              className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-surface text-sm font-bold shadow-md ring-1 ring-line"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <textarea
           ref={inputRef}
           value={text}
@@ -688,7 +730,9 @@ function Composer({
           onKeyDown={onKeyDown}
           maxLength={MAX_MESSAGE_LENGTH}
           rows={2}
-          placeholder={isIdea ? "What's your idea?" : "Say something… (@ to mention)"}
+          placeholder={
+            gif ? "Add a message (optional)" : isIdea ? "What's your idea?" : "Say something… (@ to mention)"
+          }
           aria-label="Message"
           className="w-full resize-none bg-transparent px-2 py-1.5 outline-none placeholder:text-muted"
         />
@@ -706,11 +750,26 @@ function Composer({
           >
             💡 {isIdea ? "Posting as an idea" : "Idea"}
           </button>
-          <div className="flex items-center gap-2">
+          {gifsEnabled && (
+            <button
+              type="button"
+              onClick={() => setPickingGif((v) => !v)}
+              aria-expanded={pickingGif}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-extrabold ring-1 transition active:scale-95",
+                pickingGif
+                  ? "bg-violet-500/15 text-violet-700 ring-violet-500/60 dark:text-violet-300"
+                  : "bg-surface text-muted ring-line hover:text-foreground"
+              )}
+            >
+              🎞️ GIF
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
             {text.length > MAX_MESSAGE_LENGTH - 200 && (
               <span className="text-xs font-bold text-muted">{MAX_MESSAGE_LENGTH - text.length}</span>
             )}
-            <Button type="submit" disabled={!text.trim() || sending}>
+            <Button type="submit" disabled={(!text.trim() && !gif) || sending}>
               {sending ? "Sending…" : "Send"}
             </Button>
           </div>
@@ -718,5 +777,98 @@ function Composer({
       </div>
       {error && <p className="px-2 text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>}
     </form>
+  );
+}
+
+/** A posted GIF, sized up front so the thread doesn't jump as it loads. */
+function GifImage({ gif }: { gif: ChatGif }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- GIPHY-hosted animated image
+    <img
+      src={gif.url}
+      alt={gif.title || "GIF"}
+      width={gif.width}
+      height={gif.height}
+      loading="lazy"
+      className="block h-auto w-56 max-w-full rounded-xl bg-black/5"
+      style={{ aspectRatio: `${gif.width} / ${gif.height}` }}
+    />
+  );
+}
+
+/** Search GIPHY (trending until you type) and pick one to attach. */
+function GifPicker({ onPick, onClose }: { onPick: (gif: ChatGif) => void; onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GifResult[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(
+      async () => {
+        const res = await fetch(`/api/gifs?q=${encodeURIComponent(query.trim())}`).catch(() => null);
+        if (cancelled) return;
+        if (!res?.ok) {
+          setError("Couldn't load GIFs — try again.");
+          setResults([]);
+          return;
+        }
+        const data: { results: GifResult[] } = await res.json();
+        if (cancelled) return;
+        setError(null);
+        setResults(data.results);
+      },
+      query ? 350 : 0
+    );
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <div className="flex flex-col gap-2 rounded-3xl bg-surface-2 p-2 ring-1 ring-line">
+      <div className="flex items-center gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search GIFs…"
+          aria-label="Search GIFs"
+          enterKeyHint="search"
+          autoFocus
+          className="min-w-0 flex-1 rounded-2xl bg-surface px-3 py-2 ring-1 ring-line outline-none focus:ring-2 focus:ring-violet-500/60"
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close GIF search"
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-sm font-bold text-muted ring-1 ring-line"
+        >
+          ✕
+        </button>
+      </div>
+      {error ? (
+        <p className="px-2 py-4 text-center text-sm font-semibold text-muted">{error}</p>
+      ) : results === null ? (
+        <p className="px-2 py-4 text-center text-sm font-semibold text-muted">Loading GIFs…</p>
+      ) : results.length === 0 ? (
+        <p className="px-2 py-4 text-center text-sm font-semibold text-muted">No GIFs found 🤷</p>
+      ) : (
+        <div className="grid max-h-72 grid-cols-3 gap-1 overflow-y-auto rounded-2xl">
+          {results.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onPick({ ...r.full, title: r.title })}
+              className="overflow-hidden rounded-xl bg-black/5 transition active:scale-95"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- GIPHY-hosted animated image */}
+              <img src={r.preview.url} alt={r.title || "GIF"} loading="lazy" className="block h-24 w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="px-1 text-right text-[10px] font-extrabold tracking-wide text-muted uppercase">Powered by GIPHY</p>
+    </div>
   );
 }

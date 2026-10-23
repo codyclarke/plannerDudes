@@ -30,7 +30,8 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   return NextResponse.json(page, { headers: { "Cache-Control": "private, no-store" } });
 }
 
-// Post a message (optionally as a 💡 idea). @mentioned people get a push.
+// Post a message — text, a GIF or both (optionally as a 💡 idea).
+// @mentioned people get a push.
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: eventId } = await ctx.params;
   const supabase = await createClient();
@@ -42,9 +43,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const parsed = postMessageSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Messages need some text (up to 1,000 characters)." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Say something (up to 1,000 characters) or pick a GIF." },
+      { status: 400 }
+    );
   }
-  const { body, isIdea } = parsed.data;
+  const { body, isIdea, gif } = parsed.data;
 
   // RLS: the event is only visible within the caller's group.
   const { data: event } = await supabase.from("events").select("id, title").eq("id", eventId).single();
@@ -57,7 +61,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const { data: message, error } = await supabase
     .from("event_messages")
-    .insert({ event_id: eventId, author_id: myId, body, is_idea: isIdea, mentions })
+    .insert({ event_id: eventId, author_id: myId, body, is_idea: isIdea, mentions, gif })
     .select("id")
     .single();
   if (error || !message) {

@@ -7,12 +7,26 @@ export const MAX_MESSAGE_LENGTH = 1000;
 /** Messages loaded at a time ("Show earlier" loads another page). */
 export const MESSAGE_PAGE_SIZE = 30;
 
+/** A GIF attached to a chat message (GIPHY hosts the file). */
+export type ChatGif = { url: string; width: number; height: number; title: string };
+
+/** Only GIPHY's media servers — never an arbitrary image URL. */
+export function isGiphyUrl(url: string) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && /^(media\d*|i)\.giphy\.com$/.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export type MessageView = {
   id: string;
   authorId: string;
   authorName: string;
   authorAvatarUrl: string | null;
   body: string;
+  gif: ChatGif | null;
   createdAt: string;
   editedAt: string | null;
   isIdea: boolean;
