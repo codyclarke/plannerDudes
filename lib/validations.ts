@@ -86,6 +86,16 @@ export const updateEventImageSchema = z.object({
   imagePath: z.string().max(200).nullable(), // null removes the cover
 });
 
+/** Your display name (what everyone sees — login email is unchanged). */
+export const updateNameSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Your name can't be empty.")
+    .max(40, "Keep it to 40 characters or fewer.")
+    .refine((name) => !/[\r\n\t]/.test(name), "Names can't contain line breaks."),
+});
+
 export const updateAvatarSchema = z.object({
   avatarPath: z.string().max(200).nullable(), // null removes the photo
 });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AVATAR_IMAGE, discardImage, uploadImage } from "@/lib/upload-image";
 import { AVATARS_BUCKET } from "@/lib/images";
 import { Avatar } from "@/components/ui";
+import NameEditor from "./name-editor";
 
 /** Settings profile card: photo with change/remove controls, name and email. */
 export default function AvatarEditor({
@@ -88,7 +89,7 @@ export default function AvatarEditor({
       </button>
 
       <div className="min-w-0 flex-1">
-        <p className="font-display text-xl font-semibold">{name}</p>
+        <NameEditor name={name} />
         {email && <p className="truncate text-sm text-muted">{email}</p>}
         <div className="mt-2 flex justify-center gap-3 text-sm font-bold sm:justify-start">
           <button
